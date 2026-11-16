@@ -362,7 +362,8 @@ final class TelegramChannel implements Channel
     private static function toPlain(string $text, ParseMode $mode): string
     {
         $plain = match ($mode) {
-            ParseMode::Plain, ParseMode::Markdown => $text,
+            ParseMode::Plain => $text,
+            ParseMode::Markdown => MarkdownToTelegramHtml::toPlain($text),
             ParseMode::Html => \html_entity_decode(\strip_tags($text), \ENT_QUOTES | \ENT_HTML5, 'UTF-8'),
             ParseMode::MarkdownV2 => \preg_replace('/\\\\([_*\[\]()~`>#+\-=|{}.!\\\\])/', '$1', $text) ?? $text,
         };

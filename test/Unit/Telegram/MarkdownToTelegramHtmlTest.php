@@ -25,7 +25,21 @@ final class MarkdownToTelegramHtmlTest extends TestCase
         yield 'inline code is escaped and not formatted' => ['run `a **b** <c>`', 'run <code>a **b** &lt;c&gt;</code>'];
         yield 'link' => ['see [the docs](https://example.com/a_b?x=1&y=2)', 'see <a href="https://example.com/a_b?x=1&amp;y=2">the docs</a>'];
         yield 'formatted link label' => ['[**bold** link](https://example.com)', '<a href="https://example.com"><b>bold</b> link</a>'];
-        yield 'non-http link stays text' => ['[x](javascript:alert(1))', '[x](javascript:alert(1))'];
+        yield 'unsafe link target shows the label' => ['[x](javascript:alert(1))', 'x'];
+        yield 'schemeless title shows the label' => ['[Title](Title)', 'Title'];
+        yield 'bare domain link gets https' => ['[site](example.com/a)', '<a href="https://example.com/a">site</a>'];
+        yield 'link with parentheses' => ['[w](https://en.wikipedia.org/wiki/A_(b))', '<a href="https://en.wikipedia.org/wiki/A_(b)">w</a>'];
+        yield 'bare url keeps stars and trailing dot outside' => ['see https://x.io/*a*_b_.', 'see https://x.io/*a*_b_.'];
+        yield 'heading drops inner bold' => ['## **Итоги** года', '<b>Итоги года</b>'];
+        yield 'fence after lead-in prose' => ["Code: ```sh\nls\n```", "Code:\n<pre><code class=\"language-sh\">ls</code></pre>"];
+        yield 'table becomes bullet groups' => [
+            "| Planet | Moons |\n|---|---|\n| Mars | 2 |\n| Earth | 1 |",
+            "<b>Mars</b>\n• Moons: 2\n\n<b>Earth</b>\n• Moons: 1",
+        ];
+        yield 'table with a row-label column' => [
+            "| A | B |\n|---|---|\n| r1 | 1 | 2 |",
+            "<b>r1</b>\n• A: 1\n• B: 2",
+        ];
         yield 'bare url with underscores' => ['https://example.com/a_b_c', 'https://example.com/a_b_c'];
         yield 'heading becomes bold' => ["# Title\ntext", "<b>Title</b>\ntext"];
         yield 'list markers become bullets' => ["- one\n* two\n  + nested", "• one\n• two\n  • nested"];
@@ -47,6 +61,14 @@ final class MarkdownToTelegramHtmlTest extends TestCase
     public function testConverts(string $markdown, string $html): void
     {
         self::assertSame($html, MarkdownToTelegramHtml::convert($markdown));
+    }
+
+    public function testPlainFallbackDropsMarkers(): void
+    {
+        self::assertSame(
+            "Title\nbold, italic, some_name, code and docs (https://x.io)",
+            MarkdownToTelegramHtml::toPlain("# Title\n**bold**, *italic*, some_name, `code` and [docs](https://x.io)"),
+        );
     }
 
     public function testOutputTagsAreAlwaysBalanced(): void
