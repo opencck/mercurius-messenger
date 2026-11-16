@@ -78,6 +78,10 @@ final class WebhookProcessor
         if ($message !== null && !$this->deduplicator->isDuplicate($message->dedupeKey())) {
             $this->dispatcher->dispatch($message);
         }
+        $callback = $message === null ? $this->parser->parseCallback($update) : null;
+        if ($callback !== null && !$this->deduplicator->isDuplicate($callback->dedupeKey())) {
+            $this->dispatcher->dispatchCallback($callback);
+        }
 
         return true;
     }

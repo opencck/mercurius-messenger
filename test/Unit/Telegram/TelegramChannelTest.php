@@ -190,7 +190,7 @@ final class TelegramChannelTest extends AsyncTestCase
         self::assertTrue($result->success);
         self::assertSame('55', $result->messageId);
         self::assertSame(
-            ['chat_id' => 1001, 'message_id' => 55, 'text' => 'new text'],
+            ['chat_id' => 1001, 'message_id' => 55, 'text' => 'new text', 'reply_markup' => ['inline_keyboard' => []]],
             $this->server->params('editMessageText')[0],
         );
     }

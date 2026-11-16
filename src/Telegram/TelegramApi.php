@@ -121,6 +121,7 @@ final class TelegramApi
     }
 
     /**
+     * @param array<string, mixed>|null $replyMarkup
      * @return array<array-key, mixed> the sent `Message` object
      */
     public function sendMessage(
@@ -131,8 +132,12 @@ final class TelegramApi
         ?string $threadId = null,
         bool $disableLinkPreview = false,
         ?Cancellation $cancellation = null,
+        ?array $replyMarkup = null,
     ): array {
         $params = ['chat_id' => self::chatId($chatId)] + self::formatted($text, $parseMode);
+        if ($replyMarkup !== null) {
+            $params['reply_markup'] = $replyMarkup;
+        }
         if ($replyToMessageId !== null) {
             $params['reply_parameters'] = [
                 'message_id' => (int) $replyToMessageId,
@@ -149,16 +154,48 @@ final class TelegramApi
         return self::expectArray('sendMessage', $this->call('sendMessage', $params, $cancellation));
     }
 
+    /** @param array<string, mixed>|null $replyMarkup */
     public function editMessageText(
         string $chatId,
         string $messageId,
         string $text,
         ParseMode $parseMode = ParseMode::Plain,
         ?Cancellation $cancellation = null,
+        ?array $replyMarkup = null,
     ): void {
         $params = ['chat_id' => self::chatId($chatId), 'message_id' => (int) $messageId]
             + self::formatted($text, $parseMode);
+        if ($replyMarkup !== null) {
+            $params['reply_markup'] = $replyMarkup;
+        }
         $this->call('editMessageText', $params, $cancellation);
+    }
+
+    public function answerCallbackQuery(string $callbackId, ?string $text = null, bool $alert = false, ?Cancellation $cancellation = null): void
+    {
+        $params = ['callback_query_id' => $callbackId];
+        if ($text !== null) {
+            $params['text'] = $text;
+            $params['show_alert'] = $alert;
+        }
+        $this->call('answerCallbackQuery', $params, $cancellation);
+    }
+
+    /**
+     * Sends a document; the body is multipart, the rest of the API is JSON.
+     *
+     * @return array<array-key, mixed> the sent `Message` object
+     */
+    public function sendDocument(string $chatId, string $fileName, string $content, ?string $caption = null, ?Cancellation $cancellation = null): array
+    {
+        $form = new \Amp\Http\Client\Form();
+        $form->addField('chat_id', $chatId);
+        if ($caption !== null) {
+            $form->addField('caption', $caption);
+        }
+        $form->addStream('document', \Amp\Http\Client\BufferedContent::fromString($content, 'application/octet-stream'), $fileName);
+
+        return self::expectArray('sendDocument', $this->call('sendDocument', [], $cancellation, null, $form));
     }
 
     public function sendChatAction(
@@ -186,14 +223,19 @@ final class TelegramApi
         array $params = [],
         ?Cancellation $cancellation = null,
         ?float $timeout = null,
+        ?\Amp\Http\Client\Form $form = null,
     ): mixed {
         if (\preg_match('/^[A-Za-z]+$/', $method) !== 1) {
             throw new \InvalidArgumentException('Invalid Bot API method name');
         }
 
         $request = new Request($this->baseUrl . '/bot' . $this->token . '/' . $method, 'POST');
-        $request->setHeader('content-type', 'application/json');
-        $request->setBody(\json_encode($params === [] ? new \stdClass() : $params, \JSON_THROW_ON_ERROR));
+        if ($form !== null) {
+            $request->setBody($form);
+        } else {
+            $request->setHeader('content-type', 'application/json');
+            $request->setBody(\json_encode($params === [] ? new \stdClass() : $params, \JSON_THROW_ON_ERROR));
+        }
         $request->setTransferTimeout($timeout ?? $this->timeout);
         $request->setInactivityTimeout($timeout ?? $this->timeout);
         $request->setBodySizeLimit(self::BODY_SIZE_LIMIT);

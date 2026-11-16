@@ -131,7 +131,10 @@ final class FakeTelegramServer implements DelegateHttpClient
         $url = (string) $request->getUri();
         $method = \substr($url, (int) \strrpos($url, '/') + 1);
         $body = buffer($request->getBody()->getContent());
-        $params = self::arrayOrEmpty(\json_decode($body === '' ? '{}' : $body, true, 512, \JSON_THROW_ON_ERROR));
+        // Uploads are multipart: keep the raw body, the tests only count them.
+        $params = \str_starts_with($request->getBody()->getContentType() ?? '', 'multipart/')
+            ? ['multipart' => $body]
+            : self::arrayOrEmpty(\json_decode($body === '' ? '{}' : $body, true, 512, \JSON_THROW_ON_ERROR));
         $this->calls[] = [
             'method' => $method,
             'params' => $params,

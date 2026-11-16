@@ -50,7 +50,7 @@ final class LongPolling
         private readonly float $minBackoff = 1.0,
         private readonly float $maxBackoff = 60.0,
         private readonly bool $deleteWebhook = true,
-        private readonly array $allowedUpdates = ['message'],
+        private readonly array $allowedUpdates = ['message', 'callback_query'],
     ) {
         $this->dispatcher = $handler instanceof ChatDispatcher ? $handler : new ChatDispatcher($handler, $logger);
     }
@@ -141,7 +141,14 @@ final class LongPolling
             $this->offset = \max($this->offset, $updateId + 1);
 
             $message = $this->parser->parse($update);
-            if ($message === null || $this->deduplicator->isDuplicate($message->dedupeKey())) {
+            if ($message === null) {
+                $callback = $this->parser->parseCallback($update);
+                if ($callback !== null && !$this->deduplicator->isDuplicate($callback->dedupeKey())) {
+                    $this->dispatcher->dispatchCallback($callback);
+                }
+                continue;
+            }
+            if ($this->deduplicator->isDuplicate($message->dedupeKey())) {
                 continue;
             }
             $this->dispatcher->dispatch($message);

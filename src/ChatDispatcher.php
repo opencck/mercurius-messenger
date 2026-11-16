@@ -29,6 +29,7 @@ final class ChatDispatcher
         private readonly MessageHandler $handler,
         private readonly LoggerInterface $logger = new NullLogger(),
         private readonly int $maxQueuePerChat = 100,
+        private readonly ?CallbackHandler $callbacks = null,
     ) {
         if ($maxQueuePerChat < 1) {
             throw new \InvalidArgumentException('Queue limit must be positive');
@@ -61,6 +62,25 @@ final class ChatDispatcher
         }
 
         return true;
+    }
+
+    /**
+     * Hands a button press to the callback handler at once, outside the chat queue: a press often answers the very
+     * task that keeps the chat busy. Without a handler the press is dropped.
+     */
+    public function dispatchCallback(IncomingCallback $callback): void
+    {
+        $handler = $this->callbacks;
+        if ($handler === null) {
+            return;
+        }
+        async(function () use ($handler, $callback): void {
+            try {
+                $handler->handleCallback($callback);
+            } catch (\Throwable $e) {
+                $this->logger->error('Callback handler failed', ['channel' => $callback->channel, 'error' => $e::class]);
+            }
+        })->ignore();
     }
 
     /**

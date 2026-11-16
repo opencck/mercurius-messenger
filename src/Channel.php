@@ -23,14 +23,28 @@ interface Channel
     public function send(OutgoingMessage $message): SendResult;
 
     /**
-     * Replaces the text of a message sent earlier. Unchanged text is a successful no-op.
+     * Replaces the text of a message sent earlier. Unchanged text is a successful no-op. The message gets exactly
+     * the given buttons: none removes the ones it had.
+     *
+     * @param list<list<Button>> $buttons
      */
     public function edit(
         string $chatId,
         string $messageId,
         string $text,
         ParseMode $parseMode = ParseMode::Plain,
+        array $buttons = [],
     ): SendResult;
+
+    /**
+     * Answers a button press, optionally with a short notice (an alert when `$alert`). Best effort: never fails.
+     */
+    public function answerCallback(string $callbackId, ?string $text = null, bool $alert = false): void;
+
+    /**
+     * Sends a file as a document.
+     */
+    public function sendFile(string $chatId, string $fileName, string $content, ?string $caption = null): SendResult;
 
     /**
      * Shows a "typing" indicator. Best effort: never fails.

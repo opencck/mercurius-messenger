@@ -6,6 +6,7 @@ namespace Mercurius\Messenger\Telegram;
 
 use DateTimeImmutable;
 use DateTimeZone;
+use Mercurius\Messenger\IncomingCallback;
 use Mercurius\Messenger\IncomingMessage;
 
 /**
@@ -77,6 +78,44 @@ final class UpdateParser
             threadId: self::id($message['message_thread_id'] ?? null),
             isEdited: $isEdited,
             raw: $message,
+        );
+    }
+
+    /**
+     * A button press (`callback_query`), or null when the update is something else. Presses from bots are dropped.
+     *
+     * @param array<array-key, mixed> $update
+     */
+    public function parseCallback(array $update): ?IncomingCallback
+    {
+        $updateId = self::updateId($update);
+        $query = self::arrayOrNull($update['callback_query'] ?? null);
+        if ($updateId === null || $query === null) {
+            return null;
+        }
+        $from = self::arrayOrNull($query['from'] ?? null);
+        $message = self::arrayOrNull($query['message'] ?? null);
+        $chat = $message === null ? null : self::arrayOrNull($message['chat'] ?? null);
+        $callbackId = self::nonEmptyString($query['id'] ?? null);
+        $data = self::nonEmptyString($query['data'] ?? null);
+        $userId = $from === null ? null : self::id($from['id'] ?? null);
+        $chatId = $chat === null ? null : self::id($chat['id'] ?? null);
+        if ($from === null || $callbackId === null || $data === null || $userId === null || $chatId === null) {
+            return null;
+        }
+        if (($from['is_bot'] ?? false) === true) {
+            return null;
+        }
+
+        return new IncomingCallback(
+            channel: $this->channelName,
+            callbackId: $callbackId,
+            chatId: $chatId,
+            userId: $userId,
+            displayName: self::displayName($from),
+            messageId: self::id($message['message_id'] ?? null),
+            data: $data,
+            updateId: (string) $updateId,
         );
     }
 

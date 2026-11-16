@@ -6,6 +6,7 @@ namespace Mercurius\Messenger\Telegram;
 
 use Amp\DeferredFuture;
 use Amp\Sync\LocalKeyedMutex;
+use Mercurius\Messenger\Button;
 use Mercurius\Messenger\Capabilities;
 use Mercurius\Messenger\Channel;
 use Mercurius\Messenger\OutgoingMessage;
@@ -51,7 +52,7 @@ final class TelegramChannel implements Channel
     /** @var array<string, float> chat id => monotonic time when the flood penalty ends */
     private array $floodUntil = [];
 
-    /** @var array<string, array{text: string, mode: ParseMode, deferred: DeferredFuture<SendResult>}> */
+    /** @var array<string, array{text: string, mode: ParseMode, buttons: list<list<Button>>, deferred: DeferredFuture<SendResult>}> */
     private array $pendingEdits = [];
 
     /** @var array<string, string> "chat:message" => fingerprint of the last text sent */
@@ -94,8 +95,10 @@ final class TelegramChannel implements Channel
         $ids = [];
         $lock = $this->chatLocks->acquire($message->chatId);
         try {
+            $last = \count($chunks) - 1;
             foreach ($chunks as $index => $chunk) {
-                $result = $this->sendChunk($message, $chunk, $index === 0 ? $message->replyToMessageId : null);
+                $markup = $index === $last && $message->buttons !== [] ? self::markup($message->buttons) : null;
+                $result = $this->sendChunk($message, $chunk, $index === 0 ? $message->replyToMessageId : null, $markup);
                 if ($result instanceof SendResult) {
                     return SendResult::failed(
                         $result->errorKind ?? SendErrorKind::Unknown,
@@ -119,6 +122,7 @@ final class TelegramChannel implements Channel
         string $messageId,
         string $text,
         ParseMode $parseMode = ParseMode::Plain,
+        array $buttons = [],
     ): SendResult {
         // While streaming, a long text is truncated, not split: a continuation message would become a new edit
         // target and multiply on every update.
@@ -133,10 +137,11 @@ final class TelegramChannel implements Channel
             // An edit of this message is waiting for the slot: replace its text and share its result.
             $this->pendingEdits[$key]['text'] = $text;
             $this->pendingEdits[$key]['mode'] = $parseMode;
+            $this->pendingEdits[$key]['buttons'] = $buttons;
 
             return $pending['deferred']->getFuture()->await();
         }
-        if (($this->lastText[$key] ?? null) === self::fingerprint($text, $parseMode)) {
+        if (($this->lastText[$key] ?? null) === self::fingerprint($text, $parseMode, $buttons)) {
             return SendResult::ok($messageId);
         }
         $blocked = $this->floodBlocked($chatId);
@@ -147,7 +152,7 @@ final class TelegramChannel implements Channel
         /** @var DeferredFuture<SendResult> $deferred */
         $deferred = new DeferredFuture();
         $deferred->getFuture()->ignore();
-        $this->pendingEdits[$key] = ['text' => $text, 'mode' => $parseMode, 'deferred' => $deferred];
+        $this->pendingEdits[$key] = ['text' => $text, 'mode' => $parseMode, 'buttons' => $buttons, 'deferred' => $deferred];
 
         try {
             $lock = $this->chatLocks->acquire($chatId);
@@ -156,7 +161,7 @@ final class TelegramChannel implements Channel
                 // Take the newest text: edits that arrived while waiting have replaced it.
                 $latest = $this->pendingEdits[$key];
                 unset($this->pendingEdits[$key]);
-                $result = $this->editNow($chatId, $messageId, $latest['text'], $latest['mode']);
+                $result = $this->editNow($chatId, $messageId, $latest['text'], $latest['mode'], $latest['buttons']);
             } finally {
                 $lock->release();
             }
@@ -193,7 +198,8 @@ final class TelegramChannel implements Channel
      *
      * @return string|SendResult the message id or a failed result
      */
-    private function sendChunk(OutgoingMessage $message, string $chunk, ?string $replyTo): string|SendResult
+    /** @param array<string, mixed>|null $markup */
+    private function sendChunk(OutgoingMessage $message, string $chunk, ?string $replyTo, ?array $markup = null): string|SendResult
     {
         $mode = $message->parseMode;
         $text = $chunk;
@@ -214,6 +220,8 @@ final class TelegramChannel implements Channel
                     $replyTo,
                     $message->threadId,
                     $message->disableLinkPreview,
+                    null,
+                    $markup,
                 );
             } catch (TelegramException $e) {
                 if ($e->kind === SendErrorKind::BadFormat && $mode !== ParseMode::Plain) {
@@ -244,10 +252,11 @@ final class TelegramChannel implements Channel
     /**
      * Must be called under the chat lock, after the slot wait.
      */
-    private function editNow(string $chatId, string $messageId, string $text, ParseMode $parseMode): SendResult
+    /** @param list<list<Button>> $buttons */
+    private function editNow(string $chatId, string $messageId, string $text, ParseMode $parseMode, array $buttons = []): SendResult
     {
         $key = $chatId . ':' . $messageId;
-        $fingerprint = self::fingerprint($text, $parseMode);
+        $fingerprint = self::fingerprint($text, $parseMode, $buttons);
         if (($this->lastText[$key] ?? null) === $fingerprint) {
             return SendResult::ok($messageId);
         }
@@ -261,7 +270,8 @@ final class TelegramChannel implements Channel
             }
             $this->reserveSlot($chatId);
             try {
-                $this->api->editMessageText($chatId, $messageId, $body, $mode);
+                // An explicit empty keyboard removes buttons the message had.
+                $this->api->editMessageText($chatId, $messageId, $body, $mode, null, self::markup($buttons));
             } catch (TelegramException $e) {
                 if ($e->isNotModified()) {
                     break;
@@ -351,9 +361,53 @@ final class TelegramChannel implements Channel
         }
     }
 
-    private static function fingerprint(string $text, ParseMode $mode): string
+    /** @param list<list<Button>> $buttons */
+    private static function fingerprint(string $text, ParseMode $mode, array $buttons = []): string
     {
-        return \hash('xxh128', $mode->value . "\0" . $text);
+        return \hash('xxh128', $mode->value . "\0" . $text . "\0" . \json_encode(self::markup($buttons), \JSON_THROW_ON_ERROR));
+    }
+
+    /**
+     * @param list<list<Button>> $buttons
+     * @return array{inline_keyboard: list<list<array{text: string, callback_data: string}>>}
+     */
+    private static function markup(array $buttons): array
+    {
+        return ['inline_keyboard' => \array_map(
+            static fn(array $row): array => \array_map(static fn(Button $b): array => ['text' => $b->text, 'callback_data' => $b->data], $row),
+            $buttons,
+        )];
+    }
+
+    public function answerCallback(string $callbackId, ?string $text = null, bool $alert = false): void
+    {
+        try {
+            $this->api->answerCallbackQuery($callbackId, $text, $alert);
+        } catch (TelegramException $e) {
+            $this->logger->notice('Telegram callback answer failed', ['error' => $e->getMessage()]);
+        }
+    }
+
+    public function sendFile(string $chatId, string $fileName, string $content, ?string $caption = null): SendResult
+    {
+        $blocked = $this->floodBlocked($chatId);
+        if ($blocked !== null) {
+            return $blocked;
+        }
+        $lock = $this->chatLocks->acquire($chatId);
+        try {
+            $this->waitForSlot($chatId);
+            $this->reserveSlot($chatId);
+            $sent = $this->api->sendDocument($chatId, $fileName, $content, $caption);
+        } catch (TelegramException $e) {
+            return $this->failure($chatId, $e);
+        } finally {
+            $lock->release();
+        }
+
+        return isset($sent['message_id']) && \is_int($sent['message_id'])
+            ? SendResult::ok((string) $sent['message_id'])
+            : SendResult::failed(SendErrorKind::Unknown, 'No message id in the response');
     }
 
     /**
