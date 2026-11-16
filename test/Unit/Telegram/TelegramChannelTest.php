@@ -132,6 +132,21 @@ final class TelegramChannelTest extends AsyncTestCase
         self::assertSame('Price 1.5!', $this->server->params('sendMessage')[1]['text']);
     }
 
+    public function testMarkdownFallbackSendsTheSourceText(): void
+    {
+        $this->server->respondError('sendMessage', 400, "Bad Request: can't parse entities: Unexpected end tag");
+
+        $result = $this->channel()->send(
+            new OutgoingMessage('1001', '**Bold** text', parseMode: ParseMode::Markdown),
+        );
+
+        self::assertTrue($result->success);
+        $calls = $this->server->params('sendMessage');
+        self::assertSame('<b>Bold</b> text', $calls[0]['text']);
+        self::assertArrayNotHasKey('parse_mode', $calls[1]);
+        self::assertSame('**Bold** text', $calls[1]['text']);
+    }
+
     public function testParseErrorInPlainTextIsNotRetried(): void
     {
         $this->server->respondError('sendMessage', 400, "Bad Request: can't parse entities");

@@ -48,6 +48,19 @@ final class TelegramApiTest extends AsyncTestCase
         self::assertSame(['chat_id' => '@channel', 'text' => 'x'], $this->server->params('sendMessage')[0]);
     }
 
+    public function testMarkdownIsSentAsHtml(): void
+    {
+        $this->api->sendMessage('1', '**Bold** & `code`', ParseMode::Markdown);
+        $this->api->editMessageText('1', '2', '*it*', ParseMode::Markdown);
+
+        $sent = $this->server->params('sendMessage')[0];
+        self::assertSame('<b>Bold</b> &amp; <code>code</code>', $sent['text']);
+        self::assertSame('HTML', $sent['parse_mode']);
+        $edited = $this->server->params('editMessageText')[0];
+        self::assertSame('<i>it</i>', $edited['text']);
+        self::assertSame('HTML', $edited['parse_mode']);
+    }
+
     public function testGetUpdatesFiltersEntries(): void
     {
         $this->server->respondOk('getUpdates', [['update_id' => 1], 'junk', ['update_id' => 2]]);

@@ -87,12 +87,13 @@ foreach ($deltas as $textSoFar) {
 |-----|------------|
 | `Channel` | `name()`, `send(OutgoingMessage): SendResult`, `edit(chatId, messageId, text, ParseMode = Plain): SendResult`, `typing(chatId)`, `capabilities(): Capabilities` |
 | `IncomingMessage` | неизменяемое нормализованное сообщение: channel, chatId, userId, userName, displayName, text, messageId, replyToMessageId, isPrivateChat, receivedAt, updateId (`dedupeKey()`), threadId, isEdited, raw |
-| `OutgoingMessage` | chatId, text, replyToMessageId, `ParseMode` (`plain`, `html`, `markdown_v2`), threadId, disableLinkPreview |
+| `OutgoingMessage` | chatId, text, replyToMessageId, `ParseMode` (`plain`, `markdown`, `html`, `markdown_v2`), threadId, disableLinkPreview |
 | `SendResult` | `ok()` / `failed()`: success, messageId, continuationMessageIds (текст разбит), `SendErrorKind` (`too_long`, `bad_format`, `forbidden`, `not_found`, `rate_limited`, `transient`, `unknown`), retryAfter, error |
 | `MessageHandler` | `handle(IncomingMessage): void` — реализует приложение |
 | `ChatDispatcher` | вызывает обработчик: чаты параллельно, один чат по порядку; очередь чата ограничена |
 | `Deduplicator` | ограниченный LRU последних id обновлений |
 | `TextSplitter` | режет текст по абзацам и строкам, сохраняет блоки кода ```; длина в UTF-16 |
+| `Telegram\MarkdownToTelegramHtml` | переводит обычный Markdown языковых моделей (`ParseMode::Markdown`) в HTML Telegram; работает и с недописанным текстом потока |
 | `Telegram\TelegramApi` | тонкий асинхронный клиент Bot API; ошибки — `TelegramException` с `SendErrorKind`; токен не попадает в ошибки |
 | `Telegram\TelegramChannel` | `Channel` для Telegram: разбиение по 4096 единиц UTF-16, повтор плоским текстом при отказе разметки, не чаще раза в секунду на чат, локальное окно flood после 429, правка без изменений — пустая операция |
 | `Telegram\UpdateParser` | Telegram `Update` → `?IncomingMessage` (текст или подпись; боты, посты каналов и правки, если не включены, отбрасываются) |

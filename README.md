@@ -87,12 +87,13 @@ foreach ($deltas as $textSoFar) {
 |------|---------|
 | `Channel` | `name()`, `send(OutgoingMessage): SendResult`, `edit(chatId, messageId, text, ParseMode = Plain): SendResult`, `typing(chatId)`, `capabilities(): Capabilities` |
 | `IncomingMessage` | immutable normalized message: channel, chatId, userId, userName, displayName, text, messageId, replyToMessageId, isPrivateChat, receivedAt, updateId (`dedupeKey()`), threadId, isEdited, raw |
-| `OutgoingMessage` | chatId, text, replyToMessageId, `ParseMode` (`plain`, `html`, `markdown_v2`), threadId, disableLinkPreview |
+| `OutgoingMessage` | chatId, text, replyToMessageId, `ParseMode` (`plain`, `markdown`, `html`, `markdown_v2`), threadId, disableLinkPreview |
 | `SendResult` | `ok()` / `failed()`: success, messageId, continuationMessageIds (split text), `SendErrorKind` (`too_long`, `bad_format`, `forbidden`, `not_found`, `rate_limited`, `transient`, `unknown`), retryAfter, error |
 | `MessageHandler` | `handle(IncomingMessage): void` — implemented by the application |
 | `ChatDispatcher` | runs the handler: chats concurrently, one chat in order; bounded queue per chat |
 | `Deduplicator` | bounded LRU of recent update ids |
 | `TextSplitter` | splits text by paragraphs and lines, keeps ``` code blocks; UTF-16 length |
+| `Telegram\MarkdownToTelegramHtml` | converts the common Markdown of language models (`ParseMode::Markdown`) to Telegram HTML; safe on unfinished streamed text |
 | `Telegram\TelegramApi` | thin async Bot API client; errors become `TelegramException` with a `SendErrorKind`; the token never appears in errors |
 | `Telegram\TelegramChannel` | `Channel` for Telegram: splitting at 4096 UTF-16 units, plain-text retry when formatting is rejected, one send per second per chat, local flood window after a 429, unchanged edits are no-ops |
 | `Telegram\UpdateParser` | Telegram `Update` → `?IncomingMessage` (text or caption; ignores bots, channel posts, edits unless enabled) |

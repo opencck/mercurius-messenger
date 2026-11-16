@@ -132,8 +132,7 @@ final class TelegramApi
         bool $disableLinkPreview = false,
         ?Cancellation $cancellation = null,
     ): array {
-        $params = ['chat_id' => self::chatId($chatId), 'text' => $text];
-        $params += self::parseModeParam($parseMode);
+        $params = ['chat_id' => self::chatId($chatId)] + self::formatted($text, $parseMode);
         if ($replyToMessageId !== null) {
             $params['reply_parameters'] = [
                 'message_id' => (int) $replyToMessageId,
@@ -157,8 +156,9 @@ final class TelegramApi
         ParseMode $parseMode = ParseMode::Plain,
         ?Cancellation $cancellation = null,
     ): void {
-        $params = ['chat_id' => self::chatId($chatId), 'message_id' => (int) $messageId, 'text' => $text];
-        $this->call('editMessageText', $params + self::parseModeParam($parseMode), $cancellation);
+        $params = ['chat_id' => self::chatId($chatId), 'message_id' => (int) $messageId]
+            + self::formatted($text, $parseMode);
+        $this->call('editMessageText', $params, $cancellation);
     }
 
     public function sendChatAction(
@@ -286,14 +286,17 @@ final class TelegramApi
     }
 
     /**
-     * @return array<string, string>
+     * The `text` and `parse_mode` parameters; common Markdown is converted to Telegram HTML.
+     *
+     * @return array{text: string, parse_mode?: string}
      */
-    private static function parseModeParam(ParseMode $parseMode): array
+    private static function formatted(string $text, ParseMode $parseMode): array
     {
         return match ($parseMode) {
-            ParseMode::Plain => [],
-            ParseMode::Html => ['parse_mode' => 'HTML'],
-            ParseMode::MarkdownV2 => ['parse_mode' => 'MarkdownV2'],
+            ParseMode::Plain => ['text' => $text],
+            ParseMode::Markdown => ['text' => MarkdownToTelegramHtml::convert($text), 'parse_mode' => 'HTML'],
+            ParseMode::Html => ['text' => $text, 'parse_mode' => 'HTML'],
+            ParseMode::MarkdownV2 => ['text' => $text, 'parse_mode' => 'MarkdownV2'],
         };
     }
 }
