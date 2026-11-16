@@ -1,0 +1,52 @@
+{
+    "name": "opencck/mercurius-messenger",
+    "description": "Unified messaging channel interface with a normalized message model and an async Telegram Bot API adapter (webhook and long polling) on AMPHP v3",
+    "type": "library",
+    "license": "MIT",
+    "keywords": ["amphp", "async", "telegram", "bot", "messenger", "chat", "agent"],
+    "require": {
+        "php": ">=8.2",
+        "ext-json": "*",
+        "ext-mbstring": "*",
+        "amphp/amp": "^3",
+        "amphp/http-client": "^5",
+        "amphp/sync": "^2",
+        "psr/log": "^3",
+        "revolt/event-loop": "^1"
+    },
+    "require-dev": {
+        "amphp/phpunit-util": "^3",
+        "phpstan/phpstan": "^2",
+        "phpunit/phpunit": "^9.6",
+        "psalm/plugin-phpunit": "^0.22.2",
+        "vimeo/psalm": "^6"
+    },
+    "autoload": {
+        "psr-4": {
+            "Mercurius\\Messenger\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Mercurius\\Messenger\\Test\\": "test/"
+        }
+    },
+    "config": {
+        "sort-packages": true,
+        "platform": {
+            "php": "8.2.27"
+        },
+        "allow-plugins": {}
+    },
+    "scripts": {
+        "test": "php -d zend.assertions=1 -d assert.exception=1 vendor/bin/phpunit --exclude-group integration",
+        "test-integration": "php -d zend.assertions=1 -d assert.exception=1 vendor/bin/phpunit --group integration",
+        "phpstan": "phpstan analyse --no-progress --memory-limit=1G",
+        "psalm": "psalm --no-progress --show-info=false",
+        "check": [
+            "@test",
+            "@phpstan",
+            "@psalm"
+        ]
+    }
+}
