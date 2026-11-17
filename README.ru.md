@@ -90,7 +90,8 @@ foreach ($deltas as $textSoFar) {
 | `OutgoingMessage` | chatId, text, replyToMessageId, `ParseMode` (`plain`, `markdown`, `html`, `markdown_v2`), threadId, disableLinkPreview, buttons (ряды `Button`) |
 | `Button` | кнопка под сообщением: текст и до 64 байт данных нажатия |
 | `IncomingCallback`, `CallbackHandler` | нажатие кнопки и его обработчик; нажатия идут в обход очереди чата (`ChatDispatcher::dispatchCallback`) |
-| `IncomingMembership`, `MembershipHandler` | бота добавили в чат или убрали из него (`my_chat_member`), и кто это сделал; тоже в обход очереди чата (`ChatDispatcher::dispatchMembership`). Long polling запрашивает это по умолчанию; в `setWebhook` передайте `my_chat_member` сами |
+| `IncomingPost`, `PostHandler` | пост канала, где бот — администратор, или его правка (`channel_post`, `edited_channel_post`); в обход очереди чата (`ChatDispatcher::dispatchPost`) |
+| `IncomingMembership`, `MembershipHandler` | бота добавили в чат или убрали из него (`my_chat_member`), кто это сделал и права администратора (`rights`: `can_post_messages`…); тоже в обход очереди чата (`ChatDispatcher::dispatchMembership`). Long polling запрашивает это по умолчанию; в `setWebhook` передайте `my_chat_member` сами |
 | `SendResult` | `ok()` / `failed()`: success, messageId, continuationMessageIds (текст разбит), `SendErrorKind` (`too_long`, `bad_format`, `forbidden`, `not_found`, `rate_limited`, `transient`, `unknown`), retryAfter, error |
 | `MessageHandler` | `handle(IncomingMessage): void` — реализует приложение |
 | `ChatDispatcher` | вызывает обработчик: чаты параллельно, один чат по порядку; очередь чата ограничена |
@@ -99,7 +100,7 @@ foreach ($deltas as $textSoFar) {
 | `Telegram\MarkdownToTelegramHtml` | переводит обычный Markdown языковых моделей (`ParseMode::Markdown`) в HTML Telegram; работает и с недописанным текстом потока |
 | `Telegram\TelegramApi` | тонкий асинхронный клиент Bot API; ошибки — `TelegramException` с `SendErrorKind`; токен не попадает в ошибки |
 | `Telegram\TelegramChannel` | `Channel` для Telegram: разбиение по 4096 единиц UTF-16, повтор плоским текстом при отказе разметки, не чаще раза в секунду на чат, локальное окно flood после 429, правка без изменений — пустая операция |
-| `Telegram\UpdateParser` | Telegram `Update` → `?IncomingMessage` (текст или подпись; боты, посты каналов и правки, если не включены, отбрасываются); `parseCallback()` → `?IncomingCallback`; `parseMembership()` → `?IncomingMembership` |
+| `Telegram\UpdateParser` | Telegram `Update` → `?IncomingMessage` (текст или подпись; боты, посты каналов и правки, если не включены, отбрасываются); `parseCallback()` → `?IncomingCallback`; `parseMembership()` → `?IncomingMembership`; `parsePost()` → `?IncomingPost` |
 | `Telegram\LongPolling` | цикл `getUpdates` с учётом offset, дедупликацией, паузами при ошибках и `stop()` |
 | `Telegram\WebhookProcessor`, `Telegram\WebhookRequestValidator` | обработка тела webhook и проверка секрета за постоянное время |
 

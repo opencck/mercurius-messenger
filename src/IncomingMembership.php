@@ -23,6 +23,8 @@ final readonly class IncomingMembership
         public string $status,
         public ?string $oldStatus,
         public string $updateId,
+        /** @var array<string, bool> the admin rights of the bot (`can_post_messages`…), empty for a plain member */
+        public array $rights = [],
     ) {
     }
 

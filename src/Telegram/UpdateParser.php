@@ -9,6 +9,7 @@ use DateTimeZone;
 use Mercurius\Messenger\IncomingCallback;
 use Mercurius\Messenger\IncomingMembership;
 use Mercurius\Messenger\IncomingMessage;
+use Mercurius\Messenger\IncomingPost;
 
 /**
  * Converts a decoded Telegram `Update` into an `IncomingMessage`.
@@ -154,7 +155,59 @@ final class UpdateParser
             status: $status,
             oldStatus: $old === null ? null : self::nonEmptyString($old['status'] ?? null),
             updateId: (string) $updateId,
+            rights: self::rights($new),
         );
+    }
+
+    /**
+     * A channel post or its edit, or null when the update is something else.
+     *
+     * @param array<array-key, mixed> $update
+     */
+    public function parsePost(array $update): ?IncomingPost
+    {
+        $updateId = self::updateId($update);
+        $edited = !isset($update['channel_post']) && isset($update['edited_channel_post']);
+        $post = self::arrayOrNull($update[$edited ? 'edited_channel_post' : 'channel_post'] ?? null);
+        $chat = $post === null ? null : self::arrayOrNull($post['chat'] ?? null);
+        $chatId = $chat === null ? null : self::id($chat['id'] ?? null);
+        $messageId = $post === null ? null : self::id($post['message_id'] ?? null);
+        if ($updateId === null || $post === null || $chat === null || $chatId === null || $messageId === null) {
+            return null;
+        }
+
+        return new IncomingPost(
+            channel: $this->channelName,
+            chatId: $chatId,
+            chatTitle: self::nonEmptyString($chat['title'] ?? null),
+            messageId: $messageId,
+            text: self::nonEmptyString($post['text'] ?? null) ?? self::nonEmptyString($post['caption'] ?? null) ?? '',
+            postedAt: self::date($post['edit_date'] ?? $post['date'] ?? null),
+            isEdited: $edited,
+            updateId: (string) $updateId,
+        );
+    }
+
+    /**
+     * The `can_*` flags of a chat member.
+     *
+     * @param array<array-key, mixed>|null $member
+     * @return array<string, bool>
+     */
+    private static function rights(?array $member): array
+    {
+        $rights = [];
+        if ($member === null) {
+            return $rights;
+        }
+        /** @var mixed $value */
+        foreach ($member as $key => $value) {
+            if (\is_string($key) && \str_starts_with($key, 'can_') && \is_bool($value)) {
+                $rights[$key] = $value;
+            }
+        }
+
+        return $rights;
     }
 
     /**
