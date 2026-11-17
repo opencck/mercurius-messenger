@@ -388,6 +388,20 @@ final class TelegramChannel implements Channel
         }
     }
 
+    public function delete(string $chatId, string $messageId): bool
+    {
+        try {
+            $this->api->deleteMessage($chatId, $messageId);
+            unset($this->lastText[$chatId . ':' . $messageId]);
+
+            return true;
+        } catch (TelegramException $e) {
+            $this->logger->notice('Telegram message was not deleted', ['chat_id' => $chatId, 'error' => $e->getMessage()]);
+
+            return false;
+        }
+    }
+
     public function sendFile(string $chatId, string $fileName, string $content, ?string $caption = null): SendResult
     {
         $blocked = $this->floodBlocked($chatId);

@@ -42,6 +42,11 @@ interface Channel
     public function answerCallback(string $callbackId, ?string $text = null, bool $alert = false): void;
 
     /**
+     * Deletes a message — for example one that carried a secret. Best effort: false when it could not be deleted.
+     */
+    public function delete(string $chatId, string $messageId): bool;
+
+    /**
      * Sends a file as a document.
      */
     public function sendFile(string $chatId, string $fileName, string $content, ?string $caption = null): SendResult;

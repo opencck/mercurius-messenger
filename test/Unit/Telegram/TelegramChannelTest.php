@@ -279,6 +279,17 @@ final class TelegramChannelTest extends AsyncTestCase
         self::assertLessThan(0.1, \abs($this->server->sentAt('c') - $a), 'another chat is not delayed');
     }
 
+    public function testDeleteRemovesTheMessageAndReportsFailure(): void
+    {
+        $channel = $this->channel();
+
+        self::assertTrue($channel->delete('1001', '55'));
+        self::assertSame(['chat_id' => 1001, 'message_id' => 55], $this->server->params('deleteMessage')[0]);
+
+        $this->server->respondError('deleteMessage', 400, 'Bad Request: message cannot be deleted');
+        self::assertFalse($channel->delete('1001', '56'));
+    }
+
     public function testTypingIsBestEffort(): void
     {
         $this->server->failNetwork('sendChatAction');

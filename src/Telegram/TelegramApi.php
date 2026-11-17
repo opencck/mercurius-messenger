@@ -171,6 +171,11 @@ final class TelegramApi
         $this->call('editMessageText', $params, $cancellation);
     }
 
+    public function deleteMessage(string $chatId, string $messageId, ?Cancellation $cancellation = null): void
+    {
+        $this->call('deleteMessage', ['chat_id' => self::chatId($chatId), 'message_id' => (int) $messageId], $cancellation);
+    }
+
     public function answerCallbackQuery(string $callbackId, ?string $text = null, bool $alert = false, ?Cancellation $cancellation = null): void
     {
         $params = ['callback_query_id' => $callbackId];
