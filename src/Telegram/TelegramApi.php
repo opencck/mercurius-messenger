@@ -226,6 +226,16 @@ final class TelegramApi
      */
     public function sendDocument(string $chatId, string $fileName, string $content, ?string $caption = null, ?Cancellation $cancellation = null, ?string $threadId = null): array
     {
+        return $this->sendMedia(\Mercurius\Messenger\MediaKind::Document, $chatId, $fileName, $content, $caption, $threadId, $cancellation);
+    }
+
+    /**
+     * Uploads a file by the method of its kind (sendPhoto, sendAudio…), the file in the field of the same name.
+     *
+     * @return array<array-key, mixed> the message
+     */
+    public function sendMedia(\Mercurius\Messenger\MediaKind $kind, string $chatId, string $fileName, string $content, ?string $caption = null, ?string $threadId = null, ?Cancellation $cancellation = null): array
+    {
         $form = new \Amp\Http\Client\Form();
         $form->addField('chat_id', $chatId);
         if ($threadId !== null && $threadId !== '') {
@@ -234,9 +244,25 @@ final class TelegramApi
         if ($caption !== null) {
             $form->addField('caption', $caption);
         }
-        $form->addStream('document', \Amp\Http\Client\BufferedContent::fromString($content, 'application/octet-stream'), $fileName);
+        $form->addStream($kind->value, \Amp\Http\Client\BufferedContent::fromString($content, 'application/octet-stream'), $fileName);
 
-        return self::expectArray('sendDocument', $this->call('sendDocument', [], $cancellation, null, $form));
+        return self::expectArray($kind->method(), $this->call($kind->method(), [], $cancellation, null, $form));
+    }
+
+    /**
+     * A message of the Bot API without a file: sendLocation, sendContact, sendPoll; the topic is added when given.
+     *
+     * @param array<string, mixed> $params
+     * @return array<array-key, mixed> the message
+     */
+    public function sendPlain(string $method, string $chatId, array $params, ?string $threadId = null, ?Cancellation $cancellation = null): array
+    {
+        $params = ['chat_id' => self::chatId($chatId)] + $params;
+        if ($threadId !== null && $threadId !== '') {
+            $params['message_thread_id'] = (int) $threadId;
+        }
+
+        return self::expectArray($method, $this->call($method, $params, $cancellation));
     }
 
     public function sendChatAction(

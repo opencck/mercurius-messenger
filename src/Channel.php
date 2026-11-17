@@ -75,6 +75,20 @@ interface Channel
     public function sendFile(string $chatId, string $fileName, string $content, ?string $caption = null, ?string $threadId = null): SendResult;
 
     /**
+     * Uploads a file as the given kind: a photo, audio, video, a voice message, an animation or a document.
+     */
+    public function sendMedia(string $chatId, MediaKind $kind, string $fileName, string $content, ?string $caption = null, ?string $threadId = null): SendResult;
+
+    public function sendLocation(string $chatId, float $latitude, float $longitude, ?string $threadId = null): SendResult;
+
+    public function sendContact(string $chatId, string $phone, string $firstName, ?string $lastName = null, ?string $threadId = null): SendResult;
+
+    /**
+     * @param list<string> $options two to ten answers
+     */
+    public function sendPoll(string $chatId, string $question, array $options, bool $anonymous = true, bool $multiple = false, ?string $threadId = null): SendResult;
+
+    /**
      * Shows a "typing" indicator. Best effort: never fails.
      */
     public function typing(string $chatId): void;

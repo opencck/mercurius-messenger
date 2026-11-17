@@ -465,6 +465,43 @@ final class TelegramChannel implements Channel
 
     public function sendFile(string $chatId, string $fileName, string $content, ?string $caption = null, ?string $threadId = null): SendResult
     {
+        return $this->sendMedia($chatId, \Mercurius\Messenger\MediaKind::Document, $fileName, $content, $caption, $threadId);
+    }
+
+    public function sendMedia(string $chatId, \Mercurius\Messenger\MediaKind $kind, string $fileName, string $content, ?string $caption = null, ?string $threadId = null): SendResult
+    {
+        return $this->paced($chatId, fn(): array => $this->api->sendMedia($kind, $chatId, $fileName, $content, $caption, $threadId));
+    }
+
+    public function sendLocation(string $chatId, float $latitude, float $longitude, ?string $threadId = null): SendResult
+    {
+        return $this->paced($chatId, fn(): array => $this->api->sendPlain('sendLocation', $chatId, ['latitude' => $latitude, 'longitude' => $longitude], $threadId));
+    }
+
+    public function sendContact(string $chatId, string $phone, string $firstName, ?string $lastName = null, ?string $threadId = null): SendResult
+    {
+        $params = ['phone_number' => $phone, 'first_name' => $firstName] + ($lastName === null || $lastName === '' ? [] : ['last_name' => $lastName]);
+        return $this->paced($chatId, fn(): array => $this->api->sendPlain('sendContact', $chatId, $params, $threadId));
+    }
+
+    public function sendPoll(string $chatId, string $question, array $options, bool $anonymous = true, bool $multiple = false, ?string $threadId = null): SendResult
+    {
+        $params = [
+            'question' => $question,
+            'options' => \array_map(static fn(string $o): array => ['text' => $o], $options),
+            'is_anonymous' => $anonymous,
+            'allows_multiple_answers' => $multiple,
+        ];
+        return $this->paced($chatId, fn(): array => $this->api->sendPlain('sendPoll', $chatId, $params, $threadId));
+    }
+
+    /**
+     * One message of any kind under the same rules as text: the flood block, one at a time per chat, the pace.
+     *
+     * @param \Closure(): array<array-key, mixed> $send
+     */
+    private function paced(string $chatId, \Closure $send): SendResult
+    {
         $blocked = $this->floodBlocked($chatId);
         if ($blocked !== null) {
             return $blocked;
@@ -473,7 +510,7 @@ final class TelegramChannel implements Channel
         try {
             $this->waitForSlot($chatId);
             $this->reserveSlot($chatId);
-            $sent = $this->api->sendDocument($chatId, $fileName, $content, $caption, null, $threadId);
+            $sent = $send();
         } catch (TelegramException $e) {
             return $this->failure($chatId, $e);
         } finally {
