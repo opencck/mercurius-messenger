@@ -99,7 +99,7 @@ foreach ($deltas as $textSoFar) {
 | `Deduplicator` | bounded LRU of recent update ids |
 | `TextSplitter` | splits text by paragraphs and lines, keeps ``` code blocks; UTF-16 length |
 | `Telegram\MarkdownToTelegramHtml` | converts the common Markdown of language models (`ParseMode::Markdown`) to Telegram HTML; safe on unfinished streamed text |
-| `Telegram\TelegramApi` | thin async Bot API client; errors become `TelegramException` with a `SendErrorKind`; the token never appears in errors |
+| `Telegram\TelegramApi` | thin async Bot API client; errors become `TelegramException` with a `SendErrorKind`; the token never appears in errors; works with a local `telegram-bot-api` (`baseUrl`): in `--local` mode `getFile` gives a path on the server's disk, read by the `localFile` closure the application passes |
 | `Telegram\TelegramChannel` | `Channel` for Telegram: splitting at 4096 UTF-16 units, plain-text retry when formatting is rejected, one send per second per chat, local flood window after a 429, unchanged edits are no-ops |
 | `Telegram\UpdateParser` | Telegram `Update` → `?IncomingMessage` (text or caption, attachments; ignores bots, channel posts, edits unless enabled); `parseCallback()` → `?IncomingCallback`; `parseMembership()` → `?IncomingMembership`; `parsePost()` → `?IncomingPost` |
 | `Telegram\LongPolling` | `getUpdates` loop with offset tracking, deduplication, back-off and `stop()` |

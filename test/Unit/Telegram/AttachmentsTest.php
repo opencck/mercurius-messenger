@@ -113,4 +113,22 @@ final class AttachmentsTest extends AsyncTestCase
         self::assertSame([], $server->params('file_2.jpg'), 'and the file is not asked for');
         self::assertNull($channel->download('lie', 10), 'the body itself is over the limit');
     }
+
+    public function testALocalServerGivesAPathOnItsDiskReadByTheApplication(): void
+    {
+        $server = new FakeTelegramServer();
+        $server->respondOk('getFile', ['file_id' => 'big', 'file_size' => 9, 'file_path' => '/var/lib/telegram-bot-api/123/videos/file_9.mp4']);
+        $server->respondOk('getFile', ['file_id' => 'big', 'file_size' => 9, 'file_path' => '/var/lib/telegram-bot-api/123/videos/file_9.mp4']);
+        $read = [];
+        $local = static function (string $path, int $maxBytes) use (&$read): string {
+            $read[] = [$path, $maxBytes];
+            return 'MP4BYTES!';
+        };
+        $withDisk = new TelegramChannel(new TelegramApi(FakeTelegramServer::TOKEN, $server->client(), 'http://telegram-api:8081', localFile: $local), 0.0);
+        $without = new TelegramChannel(new TelegramApi(FakeTelegramServer::TOKEN, $server->client(), 'http://telegram-api:8081'), 0.0);
+
+        self::assertSame('MP4BYTES!', $withDisk->download('big', 100));
+        self::assertSame([['/var/lib/telegram-bot-api/123/videos/file_9.mp4', 100]], $read);
+        self::assertNull($without->download('big', 100), 'a path on a disk the application cannot read');
+    }
 }

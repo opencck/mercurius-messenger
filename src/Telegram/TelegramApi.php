@@ -39,12 +39,15 @@ final class TelegramApi
      * @param HttpClient $httpClient the application may route it through a proxy/connector
      * @param string $baseUrl Bot API server, e.g. a local `telegram-bot-api` instance
      * @param float $timeout timeout of an ordinary call, seconds
+     * @param (\Closure(string, int): ?string)|null $localFile reads a file a local Bot API server (`--local`) keeps on
+     *        its disk: `getFile` gives its absolute path there; null — such files are not read
      */
     public function __construct(
         #[SensitiveParameter] string $token,
         private readonly HttpClient $httpClient,
         string $baseUrl = self::DEFAULT_BASE_URL,
         private readonly float $timeout = 30.0,
+        private readonly ?\Closure $localFile = null,
     ) {
         if (\preg_match('/^\d+:[A-Za-z0-9_-]+$/', $token) !== 1) {
             throw new \InvalidArgumentException('Invalid Telegram bot token format');
@@ -373,6 +376,10 @@ final class TelegramApi
     {
         if (\preg_match('#^[A-Za-z0-9_./-]+$#', $path) !== 1 || \str_contains($path, '..')) {
             return null;
+        }
+        if (\str_starts_with($path, '/')) {
+            // a local server (--local) does not serve files over HTTP: the path is on its disk
+            return $this->localFile === null ? null : ($this->localFile)($path, $maxBytes);
         }
         $request = new Request($this->baseUrl . '/file/bot' . $this->token . '/' . $path);
         $request->setTransferTimeout(120);
