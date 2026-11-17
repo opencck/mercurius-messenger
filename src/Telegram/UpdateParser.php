@@ -83,6 +83,7 @@ final class UpdateParser
             isEdited: $isEdited,
             raw: $message,
             attachments: self::attachments($message, $messageId),
+            repliedAttachments: $reply === null ? [] : self::attachments($reply, self::id($reply['message_id'] ?? null) ?? 'reply'),
         );
     }
 

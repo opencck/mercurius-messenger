@@ -21,6 +21,7 @@ final readonly class IncomingMessage
      * @param bool $isEdited the message is an edit of an earlier one
      * @param array<array-key, mixed> $raw the original platform payload (for media and other details)
      * @param list<Attachment> $attachments files that came with the message (voice, photo, video, document…)
+     * @param list<Attachment> $repliedAttachments files of the message it replies to
      */
     public function __construct(
         public string $channel,
@@ -39,6 +40,8 @@ final readonly class IncomingMessage
         public array $raw = [],
         /** @var list<Attachment> files that came with the message */
         public array $attachments = [],
+        /** @var list<Attachment> files of the message this one replies to (a question to a photo sent earlier) */
+        public array $repliedAttachments = [],
     ) {
     }
 

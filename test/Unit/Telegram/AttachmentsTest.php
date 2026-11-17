@@ -131,4 +131,23 @@ final class AttachmentsTest extends AsyncTestCase
         self::assertSame([['/var/lib/telegram-bot-api/123/videos/file_9.mp4', 100]], $read);
         self::assertNull($without->download('big', 100), 'a path on a disk the application cannot read');
     }
+
+    public function testAReplyBringsTheFilesOfTheMessageItAnswers(): void
+    {
+        $msg = (new UpdateParser())->parse(self::update([
+            'text' => 'что на фото?',
+            'reply_to_message' => [
+                'message_id' => 5,
+                'date' => 1_763_279_000,
+                'chat' => ['id' => 1001, 'type' => 'private'],
+                'from' => ['id' => 1001, 'is_bot' => false, 'first_name' => 'Ann'],
+                'photo' => [['file_id' => 'old', 'file_unique_id' => 'o', 'width' => 640, 'height' => 480, 'file_size' => 5000]],
+            ],
+        ]));
+
+        self::assertNotNull($msg);
+        self::assertSame([], $msg->attachments);
+        self::assertCount(1, $msg->repliedAttachments);
+        self::assertSame(['old', 'photo-5.jpg'], [$msg->repliedAttachments[0]->fileId, $msg->repliedAttachments[0]->fileName]);
+    }
 }
