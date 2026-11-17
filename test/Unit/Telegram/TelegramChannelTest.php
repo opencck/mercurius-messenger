@@ -247,6 +247,23 @@ final class TelegramChannelTest extends AsyncTestCase
         self::assertSame('three', $edits[0]['text']);
     }
 
+    public function testEditsAfterCoalescedOnesStillReachTheChat(): void
+    {
+        $channel = $this->channel(0.2);
+        $channel->send(new OutgoingMessage('1001', 'start'));
+
+        Future\await([
+            async(fn () => $channel->edit('1001', '100', 'tool one')),
+            async(fn () => $channel->edit('1001', '100', 'tool two')),
+        ]);
+        $channel->edit('1001', '100', 'streamed', ParseMode::Markdown);
+        $final = $channel->edit('1001', '100', 'final **answer**', ParseMode::Markdown);
+
+        self::assertTrue($final->success);
+        $texts = \array_map(static fn (array $p): mixed => $p['text'] ?? null, $this->server->params('editMessageText'));
+        self::assertSame(['tool two', 'streamed', 'final <b>answer</b>'], $texts);
+    }
+
     public function testSendsToOneChatArePaced(): void
     {
         $channel = $this->channel(0.2);
