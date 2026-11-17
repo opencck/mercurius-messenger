@@ -224,10 +224,13 @@ final class TelegramApi
      *
      * @return array<array-key, mixed> the sent `Message` object
      */
-    public function sendDocument(string $chatId, string $fileName, string $content, ?string $caption = null, ?Cancellation $cancellation = null): array
+    public function sendDocument(string $chatId, string $fileName, string $content, ?string $caption = null, ?Cancellation $cancellation = null, ?string $threadId = null): array
     {
         $form = new \Amp\Http\Client\Form();
         $form->addField('chat_id', $chatId);
+        if ($threadId !== null && $threadId !== '') {
+            $form->addField('message_thread_id', $threadId);
+        }
         if ($caption !== null) {
             $form->addField('caption', $caption);
         }

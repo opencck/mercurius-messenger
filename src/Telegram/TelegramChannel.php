@@ -463,7 +463,7 @@ final class TelegramChannel implements Channel
         }
     }
 
-    public function sendFile(string $chatId, string $fileName, string $content, ?string $caption = null): SendResult
+    public function sendFile(string $chatId, string $fileName, string $content, ?string $caption = null, ?string $threadId = null): SendResult
     {
         $blocked = $this->floodBlocked($chatId);
         if ($blocked !== null) {
@@ -473,7 +473,7 @@ final class TelegramChannel implements Channel
         try {
             $this->waitForSlot($chatId);
             $this->reserveSlot($chatId);
-            $sent = $this->api->sendDocument($chatId, $fileName, $content, $caption);
+            $sent = $this->api->sendDocument($chatId, $fileName, $content, $caption, null, $threadId);
         } catch (TelegramException $e) {
             return $this->failure($chatId, $e);
         } finally {

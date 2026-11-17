@@ -74,6 +74,21 @@ final class ButtonsAndCallbacksTest extends AsyncTestCase
         self::assertSame(1, count($this->server->params('sendDocument')));
     }
 
+    public function testSendFileGoesToTheForumTopic(): void
+    {
+        $this->server->respondOk('sendDocument', ['message_id' => 78]);
+
+        $result = $this->channel()->sendFile('-1001', 'deck.pptx', 'PK', 'Презентация', '119');
+
+        self::assertTrue($result->success);
+        /** @var mixed $raw */
+        $raw = $this->server->params('sendDocument')[0]['multipart'] ?? '';
+        $multipart = \is_string($raw) ? $raw : '';
+        self::assertStringContainsString('name="message_thread_id"', $multipart);
+        self::assertStringContainsString("\r\n\r\n119\r\n", $multipart);
+        self::assertStringContainsString('filename="deck.pptx"', $multipart);
+    }
+
     public function testParserReadsCallbackQuery(): void
     {
         $callback = (new UpdateParser())->parseCallback([

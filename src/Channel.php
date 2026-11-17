@@ -70,9 +70,9 @@ interface Channel
     public function deleteTopic(string $chatId, string $threadId): bool;
 
     /**
-     * Sends a file as a document.
+     * Sends a file as a document; $threadId — the forum topic it belongs to.
      */
-    public function sendFile(string $chatId, string $fileName, string $content, ?string $caption = null): SendResult;
+    public function sendFile(string $chatId, string $fileName, string $content, ?string $caption = null, ?string $threadId = null): SendResult;
 
     /**
      * Shows a "typing" indicator. Best effort: never fails.
