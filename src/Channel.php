@@ -81,6 +81,12 @@ interface Channel
 
     public function sendLocation(string $chatId, float $latitude, float $longitude, ?string $threadId = null): SendResult;
 
+    /**
+     * The bytes of an incoming file (`Attachment::$fileId`); null when it is larger than `$maxBytes` or could not be
+     * downloaded. A Telegram bot downloads files up to 20 MB.
+     */
+    public function download(string $fileId, int $maxBytes): ?string;
+
     public function sendContact(string $chatId, string $phone, string $firstName, ?string $lastName = null, ?string $threadId = null): SendResult;
 
     /**

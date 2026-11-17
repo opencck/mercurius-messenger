@@ -484,6 +484,26 @@ final class TelegramChannel implements Channel
         return $this->paced($chatId, fn(): array => $this->api->sendPlain('sendContact', $chatId, $params, $threadId));
     }
 
+    public function download(string $fileId, int $maxBytes): ?string
+    {
+        try {
+            $file = $this->api->getFile($fileId);
+        } catch (TelegramException) {
+            return null;
+        }
+        /** @var mixed $path */
+        $path = $file['file_path'] ?? null;
+        /** @var mixed $size */
+        $size = $file['file_size'] ?? null;
+        $path = \is_string($path) ? $path : null;
+        $size = \is_int($size) ? $size : null;
+        if ($path === null || ($size !== null && $size > $maxBytes)) {
+            return null;
+        }
+
+        return $this->api->downloadFile($path, $maxBytes);
+    }
+
     public function sendPoll(string $chatId, string $question, array $options, bool $anonymous = true, bool $multiple = false, ?string $threadId = null): SendResult
     {
         $params = [

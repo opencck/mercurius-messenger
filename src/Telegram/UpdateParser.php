@@ -6,6 +6,8 @@ namespace Mercurius\Messenger\Telegram;
 
 use DateTimeImmutable;
 use DateTimeZone;
+use Mercurius\Messenger\Attachment;
+use Mercurius\Messenger\AttachmentKind;
 use Mercurius\Messenger\IncomingCallback;
 use Mercurius\Messenger\IncomingMembership;
 use Mercurius\Messenger\IncomingMessage;
@@ -80,6 +82,7 @@ final class UpdateParser
             threadId: self::id($message['message_thread_id'] ?? null),
             isEdited: $isEdited,
             raw: $message,
+            attachments: self::attachments($message, $messageId),
         );
     }
 
@@ -248,6 +251,61 @@ final class UpdateParser
     private static function nonEmptyString(mixed $value): ?string
     {
         return \is_string($value) && $value !== '' ? $value : null;
+    }
+
+    /**
+     * The files of a message. A photo comes in several sizes: the largest is taken. An animation comes with a
+     * `document` field too: the animation wins. Stickers are skipped.
+     *
+     * @param array<array-key, mixed> $message
+     * @return list<Attachment>
+     */
+    private static function attachments(array $message, string $messageId): array
+    {
+        $forwarded = isset($message['forward_origin']) || isset($message['forward_from']) || isset($message['forward_date']);
+        /** @var mixed $photo */
+        $photo = $message['photo'] ?? null;
+        if (\is_array($photo) && $photo !== []) {
+            $largest = self::arrayOrNull(\end($photo));
+            $fileId = $largest === null ? null : self::nonEmptyString($largest['file_id'] ?? null);
+            if ($largest !== null && $fileId !== null) {
+                return [new Attachment(AttachmentKind::Photo, $fileId, 'photo-' . $messageId . '.jpg', 'image/jpeg', self::int($largest['file_size'] ?? null), null, self::int($largest['width'] ?? null), self::int($largest['height'] ?? null), $forwarded)];
+            }
+        }
+        $kinds = [
+            'animation' => [AttachmentKind::Animation, 'mp4'],
+            'voice' => [AttachmentKind::Voice, 'ogg'],
+            'audio' => [AttachmentKind::Audio, 'mp3'],
+            'video_note' => [AttachmentKind::VideoNote, 'mp4'],
+            'video' => [AttachmentKind::Video, 'mp4'],
+            'document' => [AttachmentKind::Document, 'bin'],
+        ];
+        foreach ($kinds as $field => [$kind, $extension]) {
+            $file = self::arrayOrNull($message[$field] ?? null);
+            $fileId = $file === null ? null : self::nonEmptyString($file['file_id'] ?? null);
+            if ($file === null || $fileId === null) {
+                continue;
+            }
+            $size = self::int($file['length'] ?? null);
+            return [new Attachment(
+                $kind,
+                $fileId,
+                self::nonEmptyString($file['file_name'] ?? null) ?? $kind->value . '-' . $messageId . '.' . $extension,
+                self::nonEmptyString($file['mime_type'] ?? null),
+                self::int($file['file_size'] ?? null),
+                self::int($file['duration'] ?? null),
+                self::int($file['width'] ?? null) ?? $size,
+                self::int($file['height'] ?? null) ?? $size,
+                $forwarded,
+            )];
+        }
+
+        return [];
+    }
+
+    private static function int(mixed $value): ?int
+    {
+        return \is_int($value) && $value >= 0 ? $value : null;
     }
 
     /**

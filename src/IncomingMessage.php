@@ -20,6 +20,7 @@ final readonly class IncomingMessage
      * @param string|null $threadId topic/thread inside the chat, if any
      * @param bool $isEdited the message is an edit of an earlier one
      * @param array<array-key, mixed> $raw the original platform payload (for media and other details)
+     * @param list<Attachment> $attachments files that came with the message (voice, photo, video, document…)
      */
     public function __construct(
         public string $channel,
@@ -36,6 +37,8 @@ final readonly class IncomingMessage
         public ?string $threadId = null,
         public bool $isEdited = false,
         public array $raw = [],
+        /** @var list<Attachment> files that came with the message */
+        public array $attachments = [],
     ) {
     }
 

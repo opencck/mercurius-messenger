@@ -354,6 +354,45 @@ final class TelegramApi
     /**
      * Replaces every occurrence of the token (plain or URL-encoded) with `***`.
      */
+    /**
+     * The path of a file to download (`file_path`) and its size; a bot gets files up to 20 MB.
+     *
+     * @return array<array-key, mixed>
+     * @throws TelegramException
+     */
+    public function getFile(string $fileId, ?Cancellation $cancellation = null): array
+    {
+        return self::expectArray('getFile', $this->call('getFile', ['file_id' => $fileId], $cancellation));
+    }
+
+    /**
+     * The bytes of a file by its `file_path`, read up to `$maxBytes`: a longer body gives null. Errors are swallowed
+     * into null: the URL carries the token and must not reach a message.
+     */
+    public function downloadFile(string $path, int $maxBytes, ?Cancellation $cancellation = null): ?string
+    {
+        if (\preg_match('#^[A-Za-z0-9_./-]+$#', $path) !== 1 || \str_contains($path, '..')) {
+            return null;
+        }
+        $request = new Request($this->baseUrl . '/file/bot' . $this->token . '/' . $path);
+        $request->setTransferTimeout(120);
+        $request->setInactivityTimeout(60);
+        $request->setBodySizeLimit($maxBytes + 1);
+        try {
+            $response = $this->httpClient->request($request, $cancellation);
+            if ($response->getStatus() !== 200) {
+                return null;
+            }
+            $body = $response->getBody()->buffer($cancellation, $maxBytes + 1);
+        } catch (CancelledException $e) {
+            throw $e;
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return \strlen($body) > $maxBytes ? null : $body;
+    }
+
     public function redact(string $text): string
     {
         return \str_replace([$this->token, \rawurlencode($this->token)], '***', $text);
