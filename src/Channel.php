@@ -47,6 +47,11 @@ interface Channel
     public function delete(string $chatId, string $messageId): bool;
 
     /**
+     * Leaves a group or a channel — for example one the owner did not approve. Best effort: false when it failed.
+     */
+    public function leave(string $chatId): bool;
+
+    /**
      * Sends a file as a document.
      */
     public function sendFile(string $chatId, string $fileName, string $content, ?string $caption = null): SendResult;

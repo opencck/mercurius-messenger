@@ -290,6 +290,17 @@ final class TelegramChannelTest extends AsyncTestCase
         self::assertFalse($channel->delete('1001', '56'));
     }
 
+    public function testLeaveLeavesTheChatAndReportsFailure(): void
+    {
+        $channel = $this->channel();
+
+        self::assertTrue($channel->leave('-1002003004'));
+        self::assertSame(['chat_id' => -1002003004], $this->server->params('leaveChat')[0]);
+
+        $this->server->respondError('leaveChat', 400, 'Bad Request: chat not found');
+        self::assertFalse($channel->leave('-1002003005'));
+    }
+
     public function testTypingIsBestEffort(): void
     {
         $this->server->failNetwork('sendChatAction');

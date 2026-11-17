@@ -388,6 +388,19 @@ final class TelegramChannel implements Channel
         }
     }
 
+    public function leave(string $chatId): bool
+    {
+        try {
+            $this->api->leaveChat($chatId);
+
+            return true;
+        } catch (TelegramException $e) {
+            $this->logger->notice('Telegram chat was not left', ['chat_id' => $chatId, 'error' => $e->getMessage()]);
+
+            return false;
+        }
+    }
+
     public function delete(string $chatId, string $messageId): bool
     {
         try {
