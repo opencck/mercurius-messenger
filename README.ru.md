@@ -85,7 +85,7 @@ foreach ($deltas as $textSoFar) {
 
 | Тип | Назначение |
 |-----|------------|
-| `Channel` | `name()`, `send(OutgoingMessage): SendResult`, `edit(chatId, messageId, text, ParseMode = Plain, buttons = []): SendResult` (у сообщения остаются ровно эти кнопки), `answerCallback(callbackId, text, alert)`, `sendFile(chatId, fileName, content, caption): SendResult`, `typing(chatId)`, `capabilities(): Capabilities` |
+| `Channel` | `name()`, `send(OutgoingMessage): SendResult`, `edit(chatId, messageId, text, ParseMode = Plain, buttons = []): SendResult` (у сообщения остаются ровно эти кнопки), `answerCallback(callbackId, text, alert)`, `sendFile(chatId, fileName, content, caption): SendResult`, `delete(chatId, messageId)`, `leave(chatId)`, темы форума: `createTopic(chatId, name): ?string` (номер темы), `editTopic`, `closeTopic`, `reopenTopic`, `deleteTopic` — без исключений, при неудаче false или null; `typing(chatId)`, `capabilities(): Capabilities` |
 | `IncomingMessage` | неизменяемое нормализованное сообщение: channel, chatId, userId, userName, displayName, text, messageId, replyToMessageId, isPrivateChat, receivedAt, updateId (`dedupeKey()`), threadId, isEdited, raw |
 | `OutgoingMessage` | chatId, text, replyToMessageId, `ParseMode` (`plain`, `markdown`, `html`, `markdown_v2`), threadId, disableLinkPreview, buttons (ряды `Button`) |
 | `Button` | кнопка под сообщением: текст и до 64 байт данных нажатия |

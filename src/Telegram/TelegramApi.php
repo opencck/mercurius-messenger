@@ -181,6 +181,34 @@ final class TelegramApi
         $this->call('leaveChat', ['chat_id' => self::chatId($chatId)], $cancellation);
     }
 
+    /**
+     * Creates a forum topic and returns its `message_thread_id`.
+     *
+     * @throws TelegramException also when the answer has no thread id
+     */
+    public function createForumTopic(string $chatId, string $name, ?Cancellation $cancellation = null): int
+    {
+        /** @var mixed $topic */
+        $topic = $this->call('createForumTopic', ['chat_id' => self::chatId($chatId), 'name' => $name], $cancellation);
+        /** @var mixed $thread */
+        $thread = \is_array($topic) ? ($topic['message_thread_id'] ?? null) : null;
+        if (!\is_int($thread)) {
+            throw new TelegramException('createForumTopic', SendErrorKind::Unknown, 0, 'no message_thread_id in the answer');
+        }
+
+        return $thread;
+    }
+
+    /**
+     * editForumTopic, closeForumTopic, reopenForumTopic or deleteForumTopic.
+     *
+     * @param array<string, string> $extra
+     */
+    public function forumTopic(string $method, string $chatId, string $threadId, array $extra = [], ?Cancellation $cancellation = null): void
+    {
+        $this->call($method, ['chat_id' => self::chatId($chatId), 'message_thread_id' => (int) $threadId] + $extra, $cancellation);
+    }
+
     public function answerCallbackQuery(string $callbackId, ?string $text = null, bool $alert = false, ?Cancellation $cancellation = null): void
     {
         $params = ['callback_query_id' => $callbackId];

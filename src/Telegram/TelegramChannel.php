@@ -401,6 +401,54 @@ final class TelegramChannel implements Channel
         }
     }
 
+    /** Telegram allows 1 to 128 characters in a topic name. */
+    public const TOPIC_NAME_MAX = 128;
+
+    public function createTopic(string $chatId, string $name): ?string
+    {
+        try {
+            return (string) $this->api->createForumTopic($chatId, \mb_substr(\trim($name), 0, self::TOPIC_NAME_MAX));
+        } catch (TelegramException $e) {
+            $this->logger->notice('Telegram topic was not created', ['chat_id' => $chatId, 'error' => $e->getMessage()]);
+
+            return null;
+        }
+    }
+
+    public function editTopic(string $chatId, string $threadId, string $name): bool
+    {
+        return $this->topic('editForumTopic', $chatId, $threadId, ['name' => \mb_substr(\trim($name), 0, self::TOPIC_NAME_MAX)]);
+    }
+
+    public function closeTopic(string $chatId, string $threadId): bool
+    {
+        return $this->topic('closeForumTopic', $chatId, $threadId);
+    }
+
+    public function reopenTopic(string $chatId, string $threadId): bool
+    {
+        return $this->topic('reopenForumTopic', $chatId, $threadId);
+    }
+
+    public function deleteTopic(string $chatId, string $threadId): bool
+    {
+        return $this->topic('deleteForumTopic', $chatId, $threadId);
+    }
+
+    /** @param array<string, string> $extra */
+    private function topic(string $method, string $chatId, string $threadId, array $extra = []): bool
+    {
+        try {
+            $this->api->forumTopic($method, $chatId, $threadId, $extra);
+
+            return true;
+        } catch (TelegramException $e) {
+            $this->logger->notice('Telegram topic was not changed', ['method' => $method, 'chat_id' => $chatId, 'error' => $e->getMessage()]);
+
+            return false;
+        }
+    }
+
     public function delete(string $chatId, string $messageId): bool
     {
         try {
