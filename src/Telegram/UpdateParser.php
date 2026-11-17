@@ -7,6 +7,7 @@ namespace Mercurius\Messenger\Telegram;
 use DateTimeImmutable;
 use DateTimeZone;
 use Mercurius\Messenger\IncomingCallback;
+use Mercurius\Messenger\IncomingMembership;
 use Mercurius\Messenger\IncomingMessage;
 
 /**
@@ -115,6 +116,43 @@ final class UpdateParser
             displayName: self::displayName($from),
             messageId: self::id($message['message_id'] ?? null),
             data: $data,
+            updateId: (string) $updateId,
+        );
+    }
+
+    /**
+     * A change of the bot's own membership (`my_chat_member`), or null when the update is something else.
+     *
+     * @param array<array-key, mixed> $update
+     */
+    public function parseMembership(array $update): ?IncomingMembership
+    {
+        $updateId = self::updateId($update);
+        $member = self::arrayOrNull($update['my_chat_member'] ?? null);
+        if ($updateId === null || $member === null) {
+            return null;
+        }
+        $chat = self::arrayOrNull($member['chat'] ?? null);
+        $from = self::arrayOrNull($member['from'] ?? null);
+        $new = self::arrayOrNull($member['new_chat_member'] ?? null);
+        $old = self::arrayOrNull($member['old_chat_member'] ?? null);
+        $chatId = $chat === null ? null : self::id($chat['id'] ?? null);
+        $userId = $from === null ? null : self::id($from['id'] ?? null);
+        $status = $new === null ? null : self::nonEmptyString($new['status'] ?? null);
+        $type = $chat === null ? null : self::nonEmptyString($chat['type'] ?? null);
+        if ($chat === null || $from === null || $chatId === null || $userId === null || $status === null || $type === null) {
+            return null;
+        }
+
+        return new IncomingMembership(
+            channel: $this->channelName,
+            chatId: $chatId,
+            chatTitle: self::nonEmptyString($chat['title'] ?? null),
+            chatType: $type,
+            userId: $userId,
+            displayName: self::displayName($from),
+            status: $status,
+            oldStatus: $old === null ? null : self::nonEmptyString($old['status'] ?? null),
             updateId: (string) $updateId,
         );
     }

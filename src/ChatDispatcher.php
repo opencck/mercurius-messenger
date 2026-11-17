@@ -30,6 +30,7 @@ final class ChatDispatcher
         private readonly LoggerInterface $logger = new NullLogger(),
         private readonly int $maxQueuePerChat = 100,
         private readonly ?CallbackHandler $callbacks = null,
+        private readonly ?MembershipHandler $memberships = null,
     ) {
         if ($maxQueuePerChat < 1) {
             throw new \InvalidArgumentException('Queue limit must be positive');
@@ -79,6 +80,24 @@ final class ChatDispatcher
                 $handler->handleCallback($callback);
             } catch (\Throwable $e) {
                 $this->logger->error('Callback handler failed', ['channel' => $callback->channel, 'error' => $e::class]);
+            }
+        })->ignore();
+    }
+
+    /**
+     * Hands a membership change to its handler at once, outside the chat queue. Without a handler it is dropped.
+     */
+    public function dispatchMembership(IncomingMembership $change): void
+    {
+        $handler = $this->memberships;
+        if ($handler === null) {
+            return;
+        }
+        async(function () use ($handler, $change): void {
+            try {
+                $handler->handleMembership($change);
+            } catch (\Throwable $e) {
+                $this->logger->error('Membership handler failed', ['channel' => $change->channel, 'error' => $e::class]);
             }
         })->ignore();
     }
