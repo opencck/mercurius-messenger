@@ -81,6 +81,27 @@ foreach ($deltas as $textSoFar) {
 }
 ```
 
+### WebSocket channel
+
+`Websocket\WebsocketChannel` is a second channel: JSON frames over WebSocket, one private chat per client
+(`ws:<name>`). The package does not depend on a WebSocket library: the application authenticates the client, wraps
+its connection in `Websocket\Connection`, attaches it to the chat and passes received frames to `receive()`.
+What is sent while no client of the chat is connected waits in a bounded outbox.
+
+```php
+$ws = new WebsocketChannel();
+$channel = new RoutingChannel($telegram, [WebsocketChannel::PREFIX => $ws]); // ws:… chats go to the socket
+
+$key = $ws->attach('ws:p1', $connection);
+$incoming = $ws->receive('ws:p1', 'p1', 'Owner', $frame); // IncomingMessage or IncomingCallback
+$ws->detach('ws:p1', $key);
+```
+
+Frames from the client: `{"type":"message","text":"…","reply_to":"m3","files":[{"name":"a.txt","mime":"text/plain","content_base64":"…"}]}`
+and `{"type":"callback","data":"…","message_id":"m3"}`. To the client: `message` (id, text, parse_mode, buttons,
+reply_to), `edit`, `delete`, `answer`, `file`, `location`, `contact`, `poll`, `typing` and `ack` with the id of the
+client's message.
+
 ## Main interfaces
 
 | Type | Purpose |

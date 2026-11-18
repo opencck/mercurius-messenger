@@ -81,6 +81,26 @@ foreach ($deltas as $textSoFar) {
 }
 ```
 
+### Канал WebSocket
+
+`Websocket\WebsocketChannel` — второй канал: JSON-кадры по WebSocket, у каждого клиента свой личный чат
+(`ws:<имя>`). Пакет не зависит от библиотеки WebSocket: приложение проверяет клиента, оборачивает соединение в
+`Websocket\Connection`, привязывает его к чату и передаёт полученные кадры в `receive()`. Отправленное, пока клиента
+чата нет, ждёт в ограниченной очереди.
+
+```php
+$ws = new WebsocketChannel();
+$channel = new RoutingChannel($telegram, [WebsocketChannel::PREFIX => $ws]); // чаты ws:… уходят в сокет
+
+$key = $ws->attach('ws:p1', $connection);
+$incoming = $ws->receive('ws:p1', 'p1', 'Owner', $frame); // IncomingMessage или IncomingCallback
+$ws->detach('ws:p1', $key);
+```
+
+Кадры клиента: `{"type":"message","text":"…","reply_to":"m3","files":[{"name":"a.txt","mime":"text/plain","content_base64":"…"}]}`
+и `{"type":"callback","data":"…","message_id":"m3"}`. Клиенту: `message` (id, text, parse_mode, buttons, reply_to),
+`edit`, `delete`, `answer`, `file`, `location`, `contact`, `poll`, `typing` и `ack` с номером сообщения клиента.
+
 ## Основные интерфейсы
 
 | Тип | Назначение |
