@@ -374,7 +374,9 @@ final class TelegramApi
      */
     public function downloadFile(string $path, int $maxBytes, ?Cancellation $cancellation = null): ?string
     {
-        if (\preg_match('#^[A-Za-z0-9_./-]+$#', $path) !== 1 || \str_contains($path, '..')) {
+        // A local server's path names the bot's own directory "<id>:<token>/…": a colon is allowed there only.
+        $pattern = \str_starts_with($path, '/') ? '#^/[A-Za-z0-9_./:-]+$#' : '#^[A-Za-z0-9_./-]+$#';
+        if (\preg_match($pattern, $path) !== 1 || \str_contains($path, '..')) {
             return null;
         }
         if (\str_starts_with($path, '/')) {
