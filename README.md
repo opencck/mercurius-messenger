@@ -119,6 +119,7 @@ client's message.
 | `SendResult` | `ok()` / `failed()`: success, messageId, continuationMessageIds (split text), `SendErrorKind` (`too_long`, `bad_format`, `forbidden`, `not_found`, `rate_limited`, `transient`, `unknown`), retryAfter, error |
 | `MessageHandler` | `handle(IncomingMessage): void` — implemented by the application |
 | `ChatDispatcher` | runs the handler: chats concurrently, one chat in order; bounded queue per chat; with `splitDelay` (seconds) a text the client split at the limit is glued back: a part of `splitThreshold` (4000) characters or more waits for the next one from the same person, chat and topic |
+| `UpdateParser` | `allowBots: true` lets messages of other bots in groups through, flagged `IncomingMessage::$fromBot`; a bot's private message and the bot's own are always dropped |
 | `Deduplicator` | bounded LRU of recent update ids; with `firstSeen` (a closure over a store, e.g. a database table) an update redelivered after a restart is dropped too, and a failing store lets updates through |
 | `TextSplitter` | splits text by paragraphs and lines, keeps ``` code blocks; UTF-16 length |
 | `Telegram\MarkdownToTelegramHtml` | converts the common Markdown of language models (`ParseMode::Markdown`) to Telegram HTML; safe on unfinished streamed text |

@@ -97,6 +97,23 @@ final class UpdateParserTest extends TestCase
         ])]));
     }
 
+    public function testABotOfAGroupComesFlaggedWhenAllowed(): void
+    {
+        $parser = new UpdateParser(botId: 500, allowBots: true);
+        $group = ['chat' => ['id' => -100, 'type' => 'supergroup', 'title' => 'Дом']];
+
+        $message = $parser->parse(['update_id' => 7, 'message' => self::message($group + ['from' => ['id' => 99, 'is_bot' => true, 'first_name' => 'OtherBot', 'username' => 'other_bot']])]);
+        self::assertNotNull($message);
+        self::assertTrue($message->fromBot);
+        self::assertSame('other_bot', $message->userName);
+
+        self::assertNull($parser->parse(['update_id' => 8, 'message' => self::message(['from' => ['id' => 99, 'is_bot' => true, 'first_name' => 'OtherBot']])]), 'never in a private chat');
+        self::assertNull($parser->parse(['update_id' => 9, 'message' => self::message($group + ['from' => ['id' => 500, 'is_bot' => true, 'first_name' => 'Me']])]), 'never its own');
+        $person = $parser->parse(['update_id' => 10, 'message' => self::message($group)]);
+        self::assertNotNull($person);
+        self::assertFalse($person->fromBot, 'a person is not a bot');
+    }
+
     public function testEditedMessagesAreIgnoredOrFlagged(): void
     {
         $update = ['update_id' => 6, 'edited_message' => self::message(['text' => 'fixed'])];

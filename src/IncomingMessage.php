@@ -42,6 +42,8 @@ final readonly class IncomingMessage
         public array $attachments = [],
         /** @var list<Attachment> files of the message this one replies to (a question to a photo sent earlier) */
         public array $repliedAttachments = [],
+        /** the sender is another bot (only in groups, and only when the parser allows bots) */
+        public bool $fromBot = false,
     ) {
     }
 

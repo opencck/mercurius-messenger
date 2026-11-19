@@ -30,6 +30,8 @@ final class UpdateParser
         private readonly ?int $botId = null,
         private readonly bool $includeEdited = false,
         private readonly string $channelName = TelegramChannel::NAME,
+        /** messages of other bots in groups come, flagged `fromBot`; a bot's private message and its own never do */
+        private readonly bool $allowBots = false,
     ) {
     }
 
@@ -61,7 +63,11 @@ final class UpdateParser
         if ($chatId === null || $userId === null || $messageId === null) {
             return null;
         }
-        if (($from['is_bot'] ?? false) === true || ($this->botId !== null && $userId === (string) $this->botId)) {
+        $fromBot = ($from['is_bot'] ?? false) === true;
+        if ($this->botId !== null && $userId === (string) $this->botId) {
+            return null;
+        }
+        if ($fromBot && (!$this->allowBots || ($chat['type'] ?? null) === 'private')) {
             return null;
         }
 
@@ -84,6 +90,7 @@ final class UpdateParser
             raw: $message,
             attachments: self::attachments($message, $messageId),
             repliedAttachments: $reply === null ? [] : self::attachments($reply, self::id($reply['message_id'] ?? null) ?? 'reply'),
+            fromBot: $fromBot,
         );
     }
 
