@@ -9,6 +9,10 @@ use Amp\Sync\LocalKeyedMutex;
 use Mercurius\Messenger\Button;
 use Mercurius\Messenger\Capabilities;
 use Mercurius\Messenger\Channel;
+use Mercurius\Messenger\ContactChannel;
+use Mercurius\Messenger\ForumChannel;
+use Mercurius\Messenger\LocationChannel;
+use Mercurius\Messenger\PollChannel;
 use Mercurius\Messenger\OutgoingMessage;
 use Mercurius\Messenger\ParseMode;
 use Mercurius\Messenger\SendErrorKind;
@@ -33,7 +37,7 @@ use function Amp\delay;
  * ref: notes/hermes-agent-gateway-security.md, sections 3.6–3.7 — slot per chat, skipped intermediate edits,
  * plain-text fallback, local flood window, "message is not modified" as success.
  */
-final class TelegramChannel implements Channel
+final class TelegramChannel implements Channel, ForumChannel, PollChannel, ContactChannel, LocationChannel
 {
     public const NAME = 'telegram';
     public const MAX_MESSAGE_LENGTH = 4096;
@@ -78,7 +82,7 @@ final class TelegramChannel implements Channel
 
     public function capabilities(): Capabilities
     {
-        return new Capabilities(canEdit: true, maxMessageLength: self::MAX_MESSAGE_LENGTH, supportsButtons: false);
+        return new Capabilities(canEdit: true, maxMessageLength: self::MAX_MESSAGE_LENGTH, supportsButtons: true);
     }
 
     public function send(OutgoingMessage $message): SendResult

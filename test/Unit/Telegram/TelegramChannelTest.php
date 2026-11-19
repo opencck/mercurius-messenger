@@ -38,6 +38,7 @@ final class TelegramChannelTest extends AsyncTestCase
         self::assertSame('telegram', $channel->name());
         self::assertTrue($channel->capabilities()->canEdit);
         self::assertSame(4096, $channel->capabilities()->maxMessageLength);
+        self::assertTrue($channel->capabilities()->supportsButtons, 'Telegram shows buttons under a message');
     }
 
     public function testSendsShortMessage(): void

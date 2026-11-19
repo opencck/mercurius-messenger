@@ -141,4 +141,17 @@ final class WebsocketChannelTest extends TestCase
         $router->answerCallback($press->callbackId);
         self::assertSame('answer', $client->frames[1]['type'], 'a press of the socket is answered there');
     }
+
+    public function testAChatWhoseChannelHasNoTopicsGetsAFailure(): void
+    {
+        $ws = new WebsocketChannel();
+        $client = self::connection();
+        $ws->attach('ws:p1', $client);
+        $router = new RoutingChannel(new WebsocketChannel(), [WebsocketChannel::PREFIX => $ws]);
+
+        self::assertNull($router->createTopic('ws:p1', 'Сайт'));
+        self::assertFalse($router->closeTopic('ws:p1', '5'));
+        self::assertTrue($router->sendPoll('ws:p1', 'Куда?', ['А', 'Б'])->success, 'the socket has polls');
+        self::assertSame('poll', $client->frames[0]['type'] ?? null);
+    }
 }

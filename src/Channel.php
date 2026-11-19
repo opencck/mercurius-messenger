@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Mercurius\Messenger;
 
 /**
- * A messaging channel: Telegram, a WebSocket/REST API, Slack and so on.
+ * A messaging channel: Telegram, a WebSocket/REST API, Slack and so on. What only some channels do — forum topics,
+ * polls, contacts, a point on a map — is in optional interfaces (`ForumChannel`, `PollChannel`, `ContactChannel`,
+ * `LocationChannel`); what every channel does in its own way is in `capabilities()`.
  *
  * Methods do not throw on platform errors: they return a failed `SendResult`. Cancellation and programming errors
  * still propagate.
@@ -52,24 +54,6 @@ interface Channel
     public function leave(string $chatId): bool;
 
     /**
-     * Creates a forum topic; its thread id, or null when the chat is not a forum or the bot may not manage topics.
-     * The name is cut to what the messenger allows.
-     */
-    public function createTopic(string $chatId, string $name): ?string;
-
-    /** Renames a forum topic. Best effort: false when it failed. */
-    public function editTopic(string $chatId, string $threadId, string $name): bool;
-
-    /** Closes a forum topic: only admins write in it. Best effort. */
-    public function closeTopic(string $chatId, string $threadId): bool;
-
-    /** Opens a closed forum topic again. Best effort. */
-    public function reopenTopic(string $chatId, string $threadId): bool;
-
-    /** Deletes a forum topic with all its messages; it cannot be undone. Best effort. */
-    public function deleteTopic(string $chatId, string $threadId): bool;
-
-    /**
      * Sends a file as a document; $threadId — the forum topic it belongs to.
      */
     public function sendFile(string $chatId, string $fileName, string $content, ?string $caption = null, ?string $threadId = null): SendResult;
@@ -79,20 +63,11 @@ interface Channel
      */
     public function sendMedia(string $chatId, MediaKind $kind, string $fileName, string $content, ?string $caption = null, ?string $threadId = null): SendResult;
 
-    public function sendLocation(string $chatId, float $latitude, float $longitude, ?string $threadId = null): SendResult;
-
     /**
      * The bytes of an incoming file (`Attachment::$fileId`); null when it is larger than `$maxBytes` or could not be
      * downloaded. A Telegram bot downloads files up to 20 MB.
      */
     public function download(string $fileId, int $maxBytes): ?string;
-
-    public function sendContact(string $chatId, string $phone, string $firstName, ?string $lastName = null, ?string $threadId = null): SendResult;
-
-    /**
-     * @param list<string> $options two to ten answers
-     */
-    public function sendPoll(string $chatId, string $question, array $options, bool $anonymous = true, bool $multiple = false, ?string $threadId = null): SendResult;
 
     /**
      * Shows a "typing" indicator. Best effort: never fails.

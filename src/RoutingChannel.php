@@ -7,9 +7,10 @@ namespace Mercurius\Messenger;
 /**
  * Several channels behind one: a chat, a press or a file goes to the channel whose prefix its id starts with
  * (`ws:` — the WebSocket channel), everything else to the default channel. The application keeps one channel object
- * and gets a second channel without changes in its code.
+ * and gets a second channel without changes in its code. It offers every optional interface: a chat whose channel
+ * lacks one gets the failure that interface promises (null, false or a failed result).
  */
-final class RoutingChannel implements Channel
+final class RoutingChannel implements Channel, ForumChannel, PollChannel, ContactChannel, LocationChannel
 {
     /** @param array<string, Channel> $byPrefix id prefix => channel */
     public function __construct(
@@ -60,27 +61,32 @@ final class RoutingChannel implements Channel
 
     public function createTopic(string $chatId, string $name): ?string
     {
-        return $this->of($chatId)->createTopic($chatId, $name);
+        $channel = $this->of($chatId);
+        return $channel instanceof ForumChannel ? $channel->createTopic($chatId, $name) : null;
     }
 
     public function editTopic(string $chatId, string $threadId, string $name): bool
     {
-        return $this->of($chatId)->editTopic($chatId, $threadId, $name);
+        $channel = $this->of($chatId);
+        return $channel instanceof ForumChannel && $channel->editTopic($chatId, $threadId, $name);
     }
 
     public function closeTopic(string $chatId, string $threadId): bool
     {
-        return $this->of($chatId)->closeTopic($chatId, $threadId);
+        $channel = $this->of($chatId);
+        return $channel instanceof ForumChannel && $channel->closeTopic($chatId, $threadId);
     }
 
     public function reopenTopic(string $chatId, string $threadId): bool
     {
-        return $this->of($chatId)->reopenTopic($chatId, $threadId);
+        $channel = $this->of($chatId);
+        return $channel instanceof ForumChannel && $channel->reopenTopic($chatId, $threadId);
     }
 
     public function deleteTopic(string $chatId, string $threadId): bool
     {
-        return $this->of($chatId)->deleteTopic($chatId, $threadId);
+        $channel = $this->of($chatId);
+        return $channel instanceof ForumChannel && $channel->deleteTopic($chatId, $threadId);
     }
 
     public function sendFile(string $chatId, string $fileName, string $content, ?string $caption = null, ?string $threadId = null): SendResult
@@ -95,7 +101,8 @@ final class RoutingChannel implements Channel
 
     public function sendLocation(string $chatId, float $latitude, float $longitude, ?string $threadId = null): SendResult
     {
-        return $this->of($chatId)->sendLocation($chatId, $latitude, $longitude, $threadId);
+        $channel = $this->of($chatId);
+        return $channel instanceof LocationChannel ? $channel->sendLocation($chatId, $latitude, $longitude, $threadId) : self::unsupported();
     }
 
     public function download(string $fileId, int $maxBytes): ?string
@@ -105,17 +112,24 @@ final class RoutingChannel implements Channel
 
     public function sendContact(string $chatId, string $phone, string $firstName, ?string $lastName = null, ?string $threadId = null): SendResult
     {
-        return $this->of($chatId)->sendContact($chatId, $phone, $firstName, $lastName, $threadId);
+        $channel = $this->of($chatId);
+        return $channel instanceof ContactChannel ? $channel->sendContact($chatId, $phone, $firstName, $lastName, $threadId) : self::unsupported();
     }
 
     public function sendPoll(string $chatId, string $question, array $options, bool $anonymous = true, bool $multiple = false, ?string $threadId = null): SendResult
     {
-        return $this->of($chatId)->sendPoll($chatId, $question, $options, $anonymous, $multiple, $threadId);
+        $channel = $this->of($chatId);
+        return $channel instanceof PollChannel ? $channel->sendPoll($chatId, $question, $options, $anonymous, $multiple, $threadId) : self::unsupported();
     }
 
     public function typing(string $chatId): void
     {
         $this->of($chatId)->typing($chatId);
+    }
+
+    private static function unsupported(): SendResult
+    {
+        return SendResult::failed(SendErrorKind::Unknown, 'the channel of this chat does not support it');
     }
 
     /** What the default channel can do: callers that ask without a chat get the main channel's limits. */

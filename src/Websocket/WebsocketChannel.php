@@ -12,6 +12,9 @@ use Mercurius\Messenger\AttachmentKind;
 use Mercurius\Messenger\Button;
 use Mercurius\Messenger\Capabilities;
 use Mercurius\Messenger\Channel;
+use Mercurius\Messenger\ContactChannel;
+use Mercurius\Messenger\LocationChannel;
+use Mercurius\Messenger\PollChannel;
 use Mercurius\Messenger\IncomingCallback;
 use Mercurius\Messenger\IncomingMessage;
 use Mercurius\Messenger\MediaKind;
@@ -27,7 +30,7 @@ use Mercurius\Messenger\SendResult;
  * `file`, `location`, `contact`, `poll`, `typing`, `ack` (the id of the client's message).
  * From the client: `message` (text, reply_to, files: [{name, mime, content_base64}]) and `callback` (data, message_id).
  */
-final class WebsocketChannel implements Channel
+final class WebsocketChannel implements Channel, PollChannel, ContactChannel, LocationChannel
 {
     public const NAME = 'ws';
     /** chats of this channel start with it, so a router can tell them from others */
@@ -183,31 +186,6 @@ final class WebsocketChannel implements Channel
     }
 
     public function leave(string $chatId): bool
-    {
-        return false;
-    }
-
-    public function createTopic(string $chatId, string $name): ?string
-    {
-        return null;
-    }
-
-    public function editTopic(string $chatId, string $threadId, string $name): bool
-    {
-        return false;
-    }
-
-    public function closeTopic(string $chatId, string $threadId): bool
-    {
-        return false;
-    }
-
-    public function reopenTopic(string $chatId, string $threadId): bool
-    {
-        return false;
-    }
-
-    public function deleteTopic(string $chatId, string $threadId): bool
     {
         return false;
     }
