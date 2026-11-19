@@ -76,6 +76,7 @@ final class LongPolling
 
         try {
             while (!$cancel->isRequested()) {
+                $updates = [];
                 try {
                     if (!$webhookDeleted) {
                         $this->api->deleteWebhook(false, $cancel);
@@ -91,6 +92,23 @@ final class LongPolling
                         'retry_in' => $wait,
                     ]);
                     delay($wait, cancellation: $cancel);
+                    $backoff = \min($backoff * 2.0, $this->maxBackoff);
+                    continue;
+                } catch (\Throwable $e) {
+                    if ($e instanceof CancelledException) {
+                        // stopped; leaving the loop, not rethrowing: the finally below still runs
+                        break;
+                    }
+                    // ref: references/hermes-agent/plugins/platforms/telegram/adapter.py@e96221fa:L1892-L1949
+                    //      (_handle_polling_network_error) — the long poll is started again after a failure with a
+                    //      growing pause; hermes gives up after 10 tries and lets its supervisor rebuild the adapter,
+                    //      here nobody else would, so polling keeps trying at most every maxBackoff
+                    $this->logger->error('Telegram polling failed unexpectedly, restarting', [
+                        'error' => $e::class,
+                        'message' => $e->getMessage(),
+                        'retry_in' => $backoff,
+                    ]);
+                    delay($backoff, cancellation: $cancel);
                     $backoff = \min($backoff * 2.0, $this->maxBackoff);
                     continue;
                 }
@@ -139,27 +157,39 @@ final class LongPolling
                 continue;
             }
             $this->offset = \max($this->offset, $updateId + 1);
-
-            $message = $this->parser->parse($update);
-            if ($message === null) {
-                $callback = $this->parser->parseCallback($update);
-                if ($callback !== null && !$this->deduplicator->isDuplicate($callback->dedupeKey())) {
-                    $this->dispatcher->dispatchCallback($callback);
-                }
-                $membership = $callback === null ? $this->parser->parseMembership($update) : null;
-                if ($membership !== null && !$this->deduplicator->isDuplicate($membership->dedupeKey())) {
-                    $this->dispatcher->dispatchMembership($membership);
-                }
-                $post = $callback === null && $membership === null ? $this->parser->parsePost($update) : null;
-                if ($post !== null && !$this->deduplicator->isDuplicate($post->dedupeKey())) {
-                    $this->dispatcher->dispatchPost($post);
-                }
-                continue;
+            try {
+                $this->acceptOne($update);
+            } catch (\Throwable $e) {
+                // one update that cannot be read is skipped, the next ones still come
+                $this->logger->error('Telegram update not handled', ['update_id' => $updateId, 'error' => $e::class]);
             }
-            if ($this->deduplicator->isDuplicate($message->dedupeKey())) {
-                continue;
-            }
-            $this->dispatcher->dispatch($message);
         }
+    }
+
+    /**
+     * @param array<array-key, mixed> $update
+     */
+    private function acceptOne(array $update): void
+    {
+        $message = $this->parser->parse($update);
+        if ($message === null) {
+            $callback = $this->parser->parseCallback($update);
+            if ($callback !== null && !$this->deduplicator->isDuplicate($callback->dedupeKey())) {
+                $this->dispatcher->dispatchCallback($callback);
+            }
+            $membership = $callback === null ? $this->parser->parseMembership($update) : null;
+            if ($membership !== null && !$this->deduplicator->isDuplicate($membership->dedupeKey())) {
+                $this->dispatcher->dispatchMembership($membership);
+            }
+            $post = $callback === null && $membership === null ? $this->parser->parsePost($update) : null;
+            if ($post !== null && !$this->deduplicator->isDuplicate($post->dedupeKey())) {
+                $this->dispatcher->dispatchPost($post);
+            }
+            return;
+        }
+        if ($this->deduplicator->isDuplicate($message->dedupeKey())) {
+            return;
+        }
+        $this->dispatcher->dispatch($message);
     }
 }

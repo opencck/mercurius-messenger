@@ -118,6 +118,19 @@ final class LongPollingTest extends AsyncTestCase
         self::assertSame(8, $polling->offset());
     }
 
+    public function testAnUnexpectedErrorDoesNotEndPolling(): void
+    {
+        $this->server->failWith('getUpdates', new \RuntimeException('a bug somewhere below'));
+        $this->server->respondOk('getUpdates', [RecordingHandler::update(9, '10', 'still polling')]);
+        $handler = new RecordingHandler();
+        $polling = $this->polling($handler);
+
+        $this->runUntil($polling, 3);
+
+        self::assertSame(['still polling'], $handler->texts());
+        self::assertSame(10, $polling->offset());
+    }
+
     public function testHandlerFailureDoesNotStopTheChat(): void
     {
         $this->server->respondOk('getUpdates', [

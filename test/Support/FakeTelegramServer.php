@@ -66,6 +66,16 @@ final class FakeTelegramServer implements DelegateHttpClient
     }
 
     /**
+     * Queues an error of any kind for the next call of a method: a failure the API client does not know.
+     */
+    public function failWith(string $method, \Throwable $error): void
+    {
+        $this->queue[$method][] = static function () use ($error): array {
+            throw $error;
+        };
+    }
+
+    /**
      * Queues a network failure for the next call of a method.
      */
     public function failNetwork(string $method): void
