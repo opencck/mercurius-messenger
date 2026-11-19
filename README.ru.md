@@ -117,7 +117,7 @@ $ws->detach('ws:p1', $key);
 | `IncomingMembership`, `MembershipHandler` | бота добавили в чат или убрали из него (`my_chat_member`), кто это сделал и права администратора (`rights`: `can_post_messages`…); тоже в обход очереди чата (`ChatDispatcher::dispatchMembership`). Long polling запрашивает это по умолчанию; в `setWebhook` передайте `my_chat_member` сами |
 | `SendResult` | `ok()` / `failed()`: success, messageId, continuationMessageIds (текст разбит), `SendErrorKind` (`too_long`, `bad_format`, `forbidden`, `not_found`, `rate_limited`, `transient`, `unknown`), retryAfter, error |
 | `MessageHandler` | `handle(IncomingMessage): void` — реализует приложение |
-| `ChatDispatcher` | вызывает обработчик: чаты параллельно, один чат по порядку; очередь чата ограничена |
+| `ChatDispatcher` | вызывает обработчик: чаты параллельно, один чат по порядку; очередь чата ограничена; с `splitDelay` (секунды) текст, который клиент разрезал на пределе, склеивается: часть от `splitThreshold` (4000) символов ждёт следующую от того же человека в том же чате и теме |
 | `Deduplicator` | ограниченный LRU последних id обновлений |
 | `TextSplitter` | режет текст по абзацам и строкам, сохраняет блоки кода ```; длина в UTF-16 |
 | `Telegram\MarkdownToTelegramHtml` | переводит обычный Markdown языковых моделей (`ParseMode::Markdown`) в HTML Telegram; работает и с недописанным текстом потока |

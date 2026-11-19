@@ -35,4 +35,30 @@ final class ChatDispatcherTest extends AsyncTestCase
         self::assertSame(['m1', 'm2', 'other chat'], $handler->texts());
         self::assertSame(0, $dispatcher->pendingCount());
     }
+
+    public function testATextTheClientSplitIsGluedBack(): void
+    {
+        $handler = new RecordingHandler();
+        $dispatcher = new ChatDispatcher($handler, splitDelay: 0.05);
+        $parser = new UpdateParser();
+        $long = str_repeat('слово ', 680);
+        $message = static fn(int $id, string $chat, string $text): \Mercurius\Messenger\IncomingMessage => $parser->parse(RecordingHandler::update($id, $chat, $text)) ?? throw new \LogicException('not parsed');
+
+        $dispatcher->dispatch($message(1, '10', $long));
+        $dispatcher->dispatch($message(2, '10', $long));
+        $dispatcher->dispatch($message(3, '20', 'другой чат'));
+        $dispatcher->dispatch($message(4, '10', 'конец'));
+        $dispatcher->awaitIdle();
+
+        self::assertSame(['другой чат', $long . "
+" . $long . "
+конец"], $handler->texts(), 'parts near the limit wait for the rest');
+
+        $dispatcher->dispatch($message(5, '10', $long));
+        \Amp\delay(0.2);
+        $dispatcher->awaitIdle();
+        $texts = $handler->texts();
+        self::assertSame($long, end($texts), 'a long text with nothing after it goes once the pause is over');
+        self::assertCount(3, $texts);
+    }
 }

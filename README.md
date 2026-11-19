@@ -118,7 +118,7 @@ client's message.
 | `IncomingMembership`, `MembershipHandler` | the bot was added to a chat or removed from it (`my_chat_member`), with who did it and its admin rights (`rights`: `can_post_messages`…); also bypasses the chat queue (`ChatDispatcher::dispatchMembership`). Long polling asks for it by default; pass `my_chat_member` to `setWebhook` too |
 | `SendResult` | `ok()` / `failed()`: success, messageId, continuationMessageIds (split text), `SendErrorKind` (`too_long`, `bad_format`, `forbidden`, `not_found`, `rate_limited`, `transient`, `unknown`), retryAfter, error |
 | `MessageHandler` | `handle(IncomingMessage): void` — implemented by the application |
-| `ChatDispatcher` | runs the handler: chats concurrently, one chat in order; bounded queue per chat |
+| `ChatDispatcher` | runs the handler: chats concurrently, one chat in order; bounded queue per chat; with `splitDelay` (seconds) a text the client split at the limit is glued back: a part of `splitThreshold` (4000) characters or more waits for the next one from the same person, chat and topic |
 | `Deduplicator` | bounded LRU of recent update ids |
 | `TextSplitter` | splits text by paragraphs and lines, keeps ``` code blocks; UTF-16 length |
 | `Telegram\MarkdownToTelegramHtml` | converts the common Markdown of language models (`ParseMode::Markdown`) to Telegram HTML; safe on unfinished streamed text |
