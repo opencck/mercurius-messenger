@@ -38,4 +38,29 @@ final class DeduplicatorTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         new Deduplicator(0);
     }
+
+    public function testAStoreRemembersKeysAcrossRestarts(): void
+    {
+        $stored = [];
+        $store = static function (string $key) use (&$stored): bool {
+            if (isset($stored[$key])) {
+                return false;
+            }
+            $stored[$key] = true;
+            return true;
+        };
+
+        self::assertFalse((new Deduplicator(firstSeen: $store))->isDuplicate('u:1'));
+        $afterRestart = new Deduplicator(firstSeen: $store);
+        self::assertTrue($afterRestart->isDuplicate('u:1'), 'the store saw it before the restart');
+        self::assertFalse($afterRestart->isDuplicate('u:2'));
+
+        $broken = new Deduplicator(firstSeen: static function (string $key): bool {
+            if ($key !== '') {
+                throw new \RuntimeException('database down');
+            }
+            return true;
+        });
+        self::assertFalse($broken->isDuplicate('u:3'), 'a store that fails lets the update through');
+    }
 }
