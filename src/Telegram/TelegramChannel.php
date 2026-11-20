@@ -34,7 +34,7 @@ use function Amp\delay;
  * - After a 429 the chat is refused locally (no API call) until `retry_after` expires: Telegram extends the
  *   penalty while it is being hit.
  *
- * ref: notes/hermes-agent-gateway-security.md, sections 3.6–3.7 — slot per chat, skipped intermediate edits,
+ * ref: docs/notes/hermes-agent-gateway-security.md, sections 3.6–3.7 — slot per chat, skipped intermediate edits,
  * plain-text fallback, local flood window, "message is not modified" as success.
  */
 final class TelegramChannel implements Channel, ForumChannel, PollChannel, ContactChannel, LocationChannel

@@ -25,7 +25,7 @@ use function Amp\delay;
  * never waits for a handler. Errors back off exponentially (honouring `retry_after`); `stop()` or the
  * cancellation passed to `run()` ends the loop.
  *
- * ref: notes/hermes-agent-gateway-security.md, section 3.1 — webhook removed before polling, chats in parallel and
+ * ref: docs/notes/hermes-agent-gateway-security.md, section 3.1 — webhook removed before polling, chats in parallel and
  * one chat in order, deduplication by update_id.
  */
 final class LongPolling

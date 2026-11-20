@@ -60,11 +60,11 @@ final class RichContentTest extends AsyncTestCase
         $channel = $this->channel();
 
         self::assertSame('6', $channel->sendLocation('1001', 12.93, 100.88, '5')->messageId);
-        self::assertSame('7', $channel->sendContact('1001', '+66123456789', 'Сергей', 'Крупкин')->messageId);
+        self::assertSame('7', $channel->sendContact('1001', '+66123456789', 'Сергей', 'Иванов')->messageId);
         self::assertSame('8', $channel->sendPoll('1001', 'Куда идём?', ['Пляж', 'Горы'], false, true)->messageId);
 
         self::assertSame(['chat_id' => 1001, 'latitude' => 12.93, 'longitude' => 100.88, 'message_thread_id' => 5], $this->server->params('sendLocation')[0]);
-        self::assertSame(['chat_id' => 1001, 'phone_number' => '+66123456789', 'first_name' => 'Сергей', 'last_name' => 'Крупкин'], $this->server->params('sendContact')[0]);
+        self::assertSame(['chat_id' => 1001, 'phone_number' => '+66123456789', 'first_name' => 'Сергей', 'last_name' => 'Иванов'], $this->server->params('sendContact')[0]);
         self::assertSame(['chat_id' => 1001, 'question' => 'Куда идём?', 'options' => [['text' => 'Пляж'], ['text' => 'Горы']], 'is_anonymous' => false, 'allows_multiple_answers' => true], $this->server->params('sendPoll')[0]);
     }
 
