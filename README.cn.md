@@ -2,6 +2,8 @@
 
 [English](README.md) | [Русский](README.ru.md) | **中文**
 
+> 本文由模型翻译，尚未经人工审校；如有出入，以英文版为准。
+
 带规范化消息模型的统一消息通道接口，以及 Telegram Bot API 适配器（webhook 和长轮询）。新的通道——WebSocket 或 REST API、Slack、Bitrix24——以适配器的形式添加。
 
 [Mercurius](https://github.com/opencck/mercurius) 的一部分——一个自主的个人智能体。该包不依赖 Mercurius 应用，可以单独使用。
