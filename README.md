@@ -1,6 +1,6 @@
 # mercurius-messenger
 
-**English** | [Русский](README.ru.md)
+**English** | [Русский](README.ru.md) | [中文](README.cn.md)
 
 A unified messaging channel interface with a normalized message model, and a Telegram Bot API adapter (webhook and long polling). New channels — WebSocket or REST API, Slack, Bitrix24 — are added as adapters.
 
