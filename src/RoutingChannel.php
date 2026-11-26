@@ -10,7 +10,7 @@ namespace Mercurius\Messenger;
  * and gets a second channel without changes in its code. It offers every optional interface: a chat whose channel
  * lacks one gets the failure that interface promises (null, false or a failed result).
  */
-final class RoutingChannel implements Channel, ForumChannel, PollChannel, ContactChannel, LocationChannel
+final class RoutingChannel implements Channel, ForumChannel, PollChannel, ContactChannel, LocationChannel, RightsChannel
 {
     /** @param array<string, Channel> $byPrefix id prefix => channel */
     public function __construct(
@@ -87,6 +87,12 @@ final class RoutingChannel implements Channel, ForumChannel, PollChannel, Contac
     {
         $channel = $this->of($chatId);
         return $channel instanceof ForumChannel && $channel->deleteTopic($chatId, $threadId);
+    }
+
+    public function rights(string $chatId): ?BotRights
+    {
+        $channel = $this->of($chatId);
+        return $channel instanceof RightsChannel ? $channel->rights($chatId) : null;
     }
 
     public function sendFile(string $chatId, string $fileName, string $content, ?string $caption = null, ?string $threadId = null): SendResult
