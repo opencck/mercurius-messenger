@@ -29,7 +29,7 @@ Bot API (webhook и long polling) и канал WebSocket. Новые канал
 | Класс / каталог | Что делает |
 |-----------------|------------|
 | `Channel`, `Capabilities` | Отправка, правка (с ровно этими кнопками), ответ на нажатие, файлы и медиа, скачивание вложения с пределом, удаление, выход из чата, «печатает»; флаги `canEdit`, `maxMessageLength`, `supportsButtons` |
-| `ForumChannel`, `PollChannel`, `ContactChannel`, `LocationChannel` | Необязательные возможности; проверка — `instanceof`; неудача — false или null, без исключений |
+| `ForumChannel`, `PollChannel`, `ContactChannel`, `LocationChannel`, `RightsChannel` | Необязательные возможности; проверка — `instanceof`; неудача — false или null, без исключений |
 | `RoutingChannel` | Один `Channel` для ядра: чаты с приставкой (`ws:`) уходят своему каналу, остальное — каналу по умолчанию |
 | `IncomingMessage`, `Attachment`, `AttachmentKind` | Нормализованное входящее: чат, автор, текст, тема, ответ, правка, флаг бота, вложения и вложения сообщения, на которое ответ |
 | `OutgoingMessage`, `ParseMode`, `Button`, `MediaKind` | Исходящее: текст, разметка (`plain`, `markdown`, `html`, `markdown_v2`), тема, кнопки (данные до 64 байт), вид медиа |

@@ -6,6 +6,7 @@ namespace Mercurius\Messenger\Telegram;
 
 use Amp\DeferredFuture;
 use Amp\Sync\LocalKeyedMutex;
+use Mercurius\Messenger\BotRights;
 use Mercurius\Messenger\Button;
 use Mercurius\Messenger\Capabilities;
 use Mercurius\Messenger\Channel;
@@ -13,6 +14,7 @@ use Mercurius\Messenger\ContactChannel;
 use Mercurius\Messenger\ForumChannel;
 use Mercurius\Messenger\LocationChannel;
 use Mercurius\Messenger\PollChannel;
+use Mercurius\Messenger\RightsChannel;
 use Mercurius\Messenger\OutgoingMessage;
 use Mercurius\Messenger\ParseMode;
 use Mercurius\Messenger\SendErrorKind;
@@ -37,7 +39,7 @@ use function Amp\delay;
  * ref: docs/notes/hermes-agent-gateway-security.md, sections 3.6–3.7 — slot per chat, skipped intermediate edits,
  * plain-text fallback, local flood window, "message is not modified" as success.
  */
-final class TelegramChannel implements Channel, ForumChannel, PollChannel, ContactChannel, LocationChannel
+final class TelegramChannel implements Channel, ForumChannel, PollChannel, ContactChannel, LocationChannel, RightsChannel
 {
     public const NAME = 'telegram';
     public const MAX_MESSAGE_LENGTH = 4096;
@@ -403,6 +405,32 @@ final class TelegramChannel implements Channel, ForumChannel, PollChannel, Conta
 
             return false;
         }
+    }
+
+    public function rights(string $chatId): ?BotRights
+    {
+        try {
+            $me = $this->api->getMe();
+            /** @var mixed $id */
+            $id = $me['id'] ?? null;
+            if (!\is_int($id)) {
+                return null;
+            }
+            $member = $this->api->getChatMember($chatId, (string) $id);
+        } catch (TelegramException $e) {
+            $this->logger->notice('Telegram rights were not learned', ['chat_id' => $chatId, 'error' => $e->getMessage()]);
+
+            return null;
+        }
+        /** @var mixed $status */
+        $status = $member['status'] ?? null;
+
+        return new BotRights(
+            \is_string($status) ? $status : 'member',
+            ($me['can_read_all_group_messages'] ?? false) === true,
+            $status === 'creator' || ($member['can_manage_topics'] ?? false) === true,
+            $status === 'creator' || ($member['can_delete_messages'] ?? false) === true,
+        );
     }
 
     /** Telegram allows 1 to 128 characters in a topic name. */

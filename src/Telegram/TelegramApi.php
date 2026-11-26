@@ -179,6 +179,14 @@ final class TelegramApi
         $this->call('deleteMessage', ['chat_id' => self::chatId($chatId), 'message_id' => (int) $messageId], $cancellation);
     }
 
+    /**
+     * @return array<array-key, mixed> the `ChatMember` object
+     */
+    public function getChatMember(string $chatId, string $userId, ?Cancellation $cancellation = null): array
+    {
+        return self::expectArray('getChatMember', $this->call('getChatMember', ['chat_id' => self::chatId($chatId), 'user_id' => (int) $userId], $cancellation));
+    }
+
     public function leaveChat(string $chatId, ?Cancellation $cancellation = null): void
     {
         $this->call('leaveChat', ['chat_id' => self::chatId($chatId)], $cancellation);
